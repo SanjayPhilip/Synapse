@@ -72,15 +72,20 @@ async def create_application(
 
     job_result = await db.execute(select(JobPosting).where(JobPosting.id == data.job_posting_id))
     job = job_result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.employer_id == current_user.id:
+        raise HTTPException(status_code=403, detail="You cannot apply to your own job posting")
 
     status = "applied"
     match_score_val = 0
-    if job and getattr(job, 'auto_screening_enabled', True):
+    if data.resume_id and getattr(job, 'auto_screening_enabled', True):
         from app.models import MatchScore
         ms_res = await db.execute(
             select(MatchScore).where(
-                MatchScore.seeker_id == current_user.id,
+                MatchScore.resume_id == data.resume_id,
                 MatchScore.job_posting_id == data.job_posting_id,
+                MatchScore.direction == "seeker",
             )
         )
         ms = ms_res.scalar_one_or_none()

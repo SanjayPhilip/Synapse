@@ -176,3 +176,12 @@ export async function searchExternalJobs(query: string, location?: string): Prom
   if (location) params.set('location', location);
   return api.get(`/api/v1/external-jobs/search?${params.toString()}`);
 }
+
+// ============ AUTH & RECOVERY ============
+export async function forgotPassword(email: string): Promise<{ message: string; reset_token: string | null }> {
+  return api.post<{ message: string; reset_token: string | null }>('/api/v1/auth/forgot-password', { email });
+}
+
+export async function resetPassword(token: string, new_password: string): Promise<{ message: string }> {
+  return api.post<{ message: string }>('/api/v1/auth/reset-password', { token, new_password });
+}

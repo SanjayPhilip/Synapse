@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from jose import jwt, JWTError
+from datetime import timedelta
 from app.database import get_db
 from app.models import Profile
-from app.schemas.auth import UserRegister, UserLogin, TokenResponse, ProfileResponse, ProfileUpdate
+from app.schemas.auth import UserRegister, UserLogin, TokenResponse, ProfileResponse, ProfileUpdate, ForgotPasswordRequest, PasswordResetRequest
 from app.middleware.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.config import get_settings
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -56,6 +59,41 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
             "company_name": user.company_name,
         },
     )
+
+
+@router.post("/forgot-password")
+async def forgot_password(data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Profile).where(Profile.email == data.email))
+    user = result.scalars().first()
+    if not user:
+        return {"message": "If an account exists with that email, a reset link has been sent.", "reset_token": None}
+
+    token = create_access_token(
+        {"sub": str(user.id), "purpose": "password_reset"},
+        expires_delta=timedelta(minutes=30),
+    )
+    print(f"[demo] Password reset link for {data.email}: /reset-password?token={token}")
+    return {"message": "Reset link generated (valid 30 minutes).", "reset_token": token}
+
+
+@router.post("/reset-password")
+async def reset_password(data: PasswordResetRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        payload = jwt.decode(data.token, get_settings().SECRET_KEY, algorithms=[get_settings().ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    if payload.get("purpose") != "password_reset" or not payload.get("sub"):
+        raise HTTPException(status_code=400, detail="Invalid reset token")
+
+    result = await db.execute(select(Profile).where(Profile.id == payload["sub"]))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Account no longer exists")
+
+    user.password_hash = hash_password(data.new_password)
+    await db.flush()
+    return {"message": "Password updated successfully. You can now log in with your new password."}
 
 
 @router.get("/me", response_model=ProfileResponse)

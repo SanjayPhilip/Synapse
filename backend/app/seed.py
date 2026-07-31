@@ -149,6 +149,18 @@ async def seed():
             print(f"Seeded employer (employer@synapse.demo / Demo1234!) with {len(SAMPLE_JOBS)} jobs.")
         else:
             print("Employer (employer@synapse.demo) already exists in database.")
+            # Check if employer has jobs
+            jobs_res = await session.execute(select(JobPosting).where(JobPosting.employer_id == employer.id))
+            existing_jobs = jobs_res.scalars().all()
+            if not existing_jobs:
+                for job_data in SAMPLE_JOBS:
+                    job = JobPosting(
+                        employer_id=employer.id,
+                        status="active",
+                        **job_data,
+                    )
+                    session.add(job)
+                print(f"Seeded {len(SAMPLE_JOBS)} sample jobs for existing employer.")
 
         # 2. Seeker Account
         result_seeker = await session.execute(select(Profile).where(Profile.email == "seeker@synapse.demo"))

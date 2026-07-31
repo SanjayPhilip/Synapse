@@ -6,6 +6,16 @@ import { seedSampleJobs } from '@/lib/seed';
 import type { JobPosting } from '@/types';
 import { Spinner, EmptyState, Badge, Modal } from '@/components/ui';
 
+const CATEGORIES = [
+  'Software Engineering',
+  'Business & MBA',
+  'Data Analytics',
+  'Data Science & AI',
+  'Cloud & DevOps',
+  'Finance & Accounting',
+  'Marketing & Sales',
+];
+
 export function PostingsPage() {
   const { profile } = useAuth();
   const [jobs, setJobs] = useState<JobPosting[]>([]);
@@ -35,19 +45,20 @@ export function PostingsPage() {
     if (!profile) return;
     (async () => {
       try {
-        await seedSampleJobs();
+        try { await seedSampleJobs(); } catch (se) { console.warn('Seed skipped or failed:', se); }
         const j = await getJobPostings({ employerId: profile.id });
         setJobs(j);
 
-        // Fetch application counts for each job
+        // Fetch application counts for each job safely
         const counts: Record<string, number> = {};
-        for (const job of j) {
-          const apps = await getApplicationsForJob(job.id);
-          counts[job.id] = apps.length;
-        }
+        const appResults = await Promise.allSettled(j.map((job) => getApplicationsForJob(job.id)));
+        j.forEach((job, idx) => {
+          const res = appResults[idx];
+          counts[job.id] = res.status === 'fulfilled' ? res.value.length : 0;
+        });
         setAppCounts(counts);
       } catch (e) {
-        console.error(e);
+        console.error('Failed to load employer jobs:', e);
       } finally {
         setLoading(false);
       }

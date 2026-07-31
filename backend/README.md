@@ -2,49 +2,16 @@
 
 AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform — Backend API.
 
-## Setup
+> **Setup & configuration**: See the [root README](../README.md#-quick-start--installation) — it covers `.env`, SQLite/PostgreSQL options, DB init/seed, and running the server. This file documents the API surface.
 
-### Prerequisites
-- Python 3.12+
-- PostgreSQL (local or Railway)
-- Gemini API key (Google AI Studio)
+## Tech Stack
 
-### Install Dependencies
-```bash
-cd backend
-pip install -r requirements.txt
-playwright install chromium
-```
-
-### Configure Environment
-Edit `.env` with your settings:
-```
-DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/synapse
-SECRET_KEY=your-jwt-secret-key
-GEMINI_API_KEY=your-gemini-api-key
-```
-
-For Railway PostgreSQL:
-```
-DATABASE_URL=postgresql+asyncpg://postgres:password@autorack.proxy.rlwy.net:port/railway
-```
-
-### Initialize Database
-```bash
-python -m app.init_db
-```
-
-### Seed Sample Data
-```bash
-python -m app.seed
-```
-
-### Run Server
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-API docs at: http://localhost:8000/docs
+- **FastAPI** — async Python web framework
+- **SQLAlchemy 2.0** — async ORM with PostgreSQL / SQLite
+- **sentence-transformers** — real ML embeddings (`all-MiniLM-L6-v2`)
+- **Gemini API** — resume parsing, rewrite suggestions, chat assistant
+- **Adzuna + JSearch APIs** — external job search
+- **JWT + bcrypt** — authentication
 
 ## API Endpoints
 
@@ -79,17 +46,13 @@ API docs at: http://localhost:8000/docs
 - `GET /api/v1/matching/job/{jid}/candidates` — Ranked candidates
 - `GET /api/v1/matching/user/opportunities` — Ranked opportunities
 
+### External Jobs
+- `GET /api/v1/external-jobs/search?query=&location=&page=` — Search Adzuna + JSearch with deduplication
+
 ### Chat
 - `GET /api/v1/chat/sessions` — List sessions
 - `POST /api/v1/chat/sessions` — Create session
 - `POST /api/v1/chat/sessions/{id}/messages` — Send message
 
-### Saved Jobs, Rewrites, Auto-Apply, External Search
-See `/docs` for full OpenAPI spec.
-
-## Tech Stack
-- **FastAPI** — async Python web framework
-- **SQLAlchemy 2.0** — async ORM with PostgreSQL
-- **sentence-transformers** — real ML embeddings (all-MiniLM-L6-v2)
-- **Gemini API** — resume parsing, rewrite suggestions, chat assistant
-- **JWT + bcrypt** — authentication
+### Saved Jobs, Rewrites, Auto-Apply
+- See `/docs` for the full OpenAPI spec.

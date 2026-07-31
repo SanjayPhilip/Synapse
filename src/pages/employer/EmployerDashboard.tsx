@@ -17,17 +17,18 @@ export function EmployerDashboard() {
     if (!profile) return;
     (async () => {
       try {
-        await seedSampleJobs();
+        try { await seedSampleJobs(); } catch (se) { console.warn('Seed skipped or failed:', se); }
         const j = await getJobPostings({ employerId: profile.id });
         setJobs(j);
+        
+        const appResults = await Promise.allSettled(j.map((job) => getApplicationsForJob(job.id)));
         let appCount = 0;
-        for (const job of j) {
-          const apps = await getApplicationsForJob(job.id);
-          appCount += apps.length;
-        }
+        appResults.forEach((res) => {
+          if (res.status === 'fulfilled') appCount += res.value.length;
+        });
         setTotalApps(appCount);
       } catch (e) {
-        console.error(e);
+        console.error('Failed to load employer dashboard data:', e);
       } finally {
         setLoading(false);
       }

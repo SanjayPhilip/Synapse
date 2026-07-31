@@ -4,6 +4,7 @@ import { AppShell } from '@/components/AppShell';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { SeekerDashboard } from '@/pages/seeker/SeekerDashboard';
 import { ResumePage } from '@/pages/seeker/ResumePage';
 import { MatchScorePage } from '@/pages/seeker/MatchScorePage';
@@ -65,6 +66,7 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register/seeker" element={<RegisterPage role="seeker" />} />
       <Route path="/register/employer" element={<RegisterPage role="employer" />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route path="/app" element={
         <ProtectedRoute>

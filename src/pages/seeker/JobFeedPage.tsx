@@ -40,7 +40,8 @@ export function JobFeedPage() {
         ]);
         setResume(r);
         setAllResumes(all);
-        setJobs(j);
+        // Exclude own postings (employer switching to seeker mode)
+        setJobs(j.filter((job) => job.employer_id !== profile.id));
         setSavedJobs(s);
 
         if (r) {

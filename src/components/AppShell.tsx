@@ -188,14 +188,14 @@ function SidebarContent({ profile, isAdmin, isEmployer, navItems, activeModule, 
 
       <nav className="flex-1 space-y-1 p-3">
         {navItems.map((item) => {
-          const active = location.pathname === item.path || activeModule === item.id;
+          const active = location.pathname === item.path || activeModule === item.id || location.pathname.startsWith(item.path);
           return (
             <button
               key={item.id}
               onClick={() => { navigate(item.path); onClose?.(); }}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 active 
-                  ? 'bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400' 
+                  ? 'bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400 font-semibold' 
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50'
               }`}
             >
