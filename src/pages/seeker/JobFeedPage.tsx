@@ -25,6 +25,9 @@ export function JobFeedPage() {
   const [extSearchLocation, setExtSearchLocation] = useState('');
   const [showExternalSearch, setShowExternalSearch] = useState(false);
 
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const CATEGORIES = ['All', 'Software Engineering', 'Data Science & AI', 'Data Analytics', 'Business & MBA', 'Cloud & DevOps', 'Finance & Accounting', 'Marketing & Sales'];
+
   useEffect(() => {
     if (!profile) return;
     (async () => {
