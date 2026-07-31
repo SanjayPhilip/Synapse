@@ -1,0 +1,338 @@
+
+SYNAPSE
+Complete Project Documentation
+AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform
+Team No: 05
+Sanjay Philip — Backend Lead, Frontend Core, DevOps
+Akshay K R — ML/AI Lead
+Devika S — Integration & Automation Lead
+Submitted to: Ms. Avani S, Department of Computer Applications
+Document Version: 2.0 (Reconciled — Proposal + Implementation)
+Date: July 2026
+
+Table of Contents
+1. Executive Summary  ........................................................................................ 3
+2. System Overview & Vision  ............................................................................. 3
+3. Technology Stack  ........................................................................................ 4
+4. System Architecture  ...................................................................................... 5
+5. Requirements Specification  ........................................................................... 6
+6. User Stories  ............................................................................................... 8
+7. Database Schema  .......................................................................................... 10
+8. API Reference  ............................................................................................ 12
+9. Module Ownership & Sprint Plan  .................................................................. 13
+10. Workflows  ................................................................................................ 14
+11. UI/UX Specifications  .................................................................................. 15
+12. Implementation Status & Roadmap  ................................................................ 17
+13. Deployment & DevOps  ................................................................................... 18
+14. Appendices  ............................................................................................... 19
+
+1. Executive Summary
+Synapse is a two-sided, machine-learning-driven platform that unifies resume optimization, intelligent job discovery, and applicant hiring within a single system. Unlike conventional job portals that operate purely as listing-and-apply funnels, this platform is built around one bidirectional matching engine that serves both job seekers and employers — the name reflects its core design principle: a single connecting point across which signal passes in both directions, seeker to employer and employer to seeker, much like a neural synapse.
+Core Value Propositions
+For Job Seekers
+For Employers
+Upload resume → get structured JSON via AI parsing
+Post jobs directly on the platform
+Match Score + itemized gap report against any job description
+Receive ranked, explainable applicant shortlists
+AI-suggested, evidence-grounded resume rewrites (no fabrication)
+Context-aware AI chat assistant for pool queries
+Ranked job feed (external + on-platform) with per-job apply choice
+Single scoring core — no separate ATS needed
+What Makes Synapse Different
+One shared embedding model for both directions (seeker→job and job→applicant), ensuring consistent, auditable scoring
+Transparent diagnostics — every match comes with an explainable gap report, not just a number
+Grounded AI rewriting — suggestions improve weak sections using the candidate's real experience only
+Opt-in automation — Auto-Apply is strictly per-listing, never automatic, with full logging
+2. System Overview & Vision
+2.1 Problem Statement
+Traditional job platforms suffer from three disconnects:
+Seekers blast applications without knowing fit, and lack actionable feedback on why they were rejected
+Employers maintain expensive, disconnected ATS systems that don't explain why candidates rank where they do
+Both sides operate in black boxes — there is no transparent diagnostic layer explaining match strength
+2.2 Solution Approach
+Synapse acts as a transparent diagnostic and matching layer that sits alongside established job boards, not as a competitor to them. It makes explicit, on both sides of the hiring process, why a match is strong or weak, and gives each side concrete, actionable ways to close that gap.
+2.3 Scope
+In Scope
+Dual-role platform (Seeker + Employer)
+Resume parsing (PDF/DOCX) into structured JSON
+Bidirectional match scoring (keyword + semantic similarity)
+AI-powered gap explanations and resume rewriting
+External job aggregation (Adzuna, JSearch) with deduplication
+Per-job opt-in Auto-Apply via headless browser automation
+Persistent, context-aware AI chat assistant
+Employer applicant ranking and shortlisting
+3. Technology Stack
+3.1 Core Components
+Component
+Technology
+Purpose
+Web Frontend
+React.js (Vite) + Tailwind CSS + Shadcn/UI
+Single web app serving both roles
+Backend Framework
+FastAPI (Python)
+RESTful API, auth, scoring orchestration
+Database
+PostgreSQL (Railway-managed)
+User accounts, resumes, postings, applications
+Matching Engine
+sentence-transformers
+Dense embedding generation + similarity scoring
+Generative AI
+Claude API (Anthropic)
+Resume parsing, gap explanations, chat assistant
+Job Aggregation
+Adzuna API, JSearch (RapidAPI)
+External job listing aggregation
+Auto-Apply
+Playwright + Celery
+Headless browser automation
+Authentication
+JWT + RBAC
+HS256 tokens, bcrypt hashing
+Deployment
+Vercel (frontend), Railway (backend + DB)
+Production hosting
+4. System Architecture
+4.1 High-Level Design
+The platform is built around a single sentence-embedding model that performs relevance scoring in both directions:
+Seeker Side: Candidate's resume is the fixed reference; job descriptions are ranked against it
+Employer Side: Job posting is the fixed reference; every applicant's resume is ranked against it
+Both directions reuse the same scoring logic (40% keyword + 60% semantic embedding similarity).
+4.2 Module Architecture Diagram
+
+Figure 4.1 — Three-tier architecture: Frontend, Backend, Database
+5. Requirements Specification
+5.1 Functional Requirements
+FR-1: User Authentication & Role Management
+ID
+Requirement
+Priority
+Status
+FR-1.1
+Support dual-role registration (Seeker / Employer)
+Must Have
+✅ Implemented
+FR-1.2
+JWT-based authentication with secure password hashing
+Must Have
+✅ Implemented
+FR-1.3
+Role-Based Access Control (RBAC) for all endpoints
+Must Have
+✅ Implemented
+FR-1.4
+Profile management for both roles
+Must Have
+✅ Implemented
+FR-2: Resume Parsing & Processing
+ID
+Requirement
+Priority
+Status
+FR-2.1
+Accept PDF and DOCX resume uploads (≤5MB)
+Must Have
+✅ Implemented
+FR-2.2
+Extract structured data using pattern matching + optional Claude API
+Must Have
+⚠️ Pattern matching active
+FR-2.3
+Store parsed resume data in structured JSON format
+Must Have
+✅ Implemented
+FR-2.4
+Support resume update and version history
+Should Have
+📋 Planned
+6. User Stories
+6.1 Epic 1: Authentication & Onboarding
+ID
+User Story
+Status
+US-1.1
+As a job seeker, I want to register with email/password so I can create an account
+✅ Implemented
+US-1.2
+As an employer, I want to register with company details so I can post jobs
+✅ Implemented
+US-1.3
+As a user, I want to log in so I can access my dashboard
+✅ Implemented
+US-1.4
+As a user, I want to switch between roles so I can use both sides
+📋 Planned
+7. Database Schema
+7.1 Entity Relationships
+
+Figure 7.1 — Entity Relationship diagram
+8. API Reference
+8.1 Authentication Endpoints
+Method
+Endpoint
+Description
+Status
+POST
+/api/v1/auth/register
+Register new user
+✅
+POST
+/api/v1/auth/login
+Login, receive JWT
+✅
+GET
+/api/v1/auth/me
+Get current user profile
+✅
+8.2 Resume Endpoints
+Method
+Endpoint
+Description
+Status
+POST
+/api/v1/resumes/upload
+Upload resume (PDF/DOCX)
+✅
+GET
+/api/v1/resumes/{id}
+Get resume details
+✅
+DELETE
+/api/v1/resumes/{id}
+Delete resume
+✅
+8.3 Matching & Scoring
+Method
+Endpoint
+Description
+Status
+POST
+/api/v1/matching/match-resume/{rid}/{jid}
+Calculate match score
+✅
+GET
+/api/v1/matching/job/{jid}/candidates
+Get ranked candidates
+✅
+GET
+/api/v1/matching/user/opportunities
+Get ranked opportunities
+✅
+9. Module Ownership & Sprint Plan
+9.1 Backend Modules
+Module
+Owner
+Tech Stack
+auth.py
+Devika S
+FastAPI, JWT, OAuth2, PostgreSQL
+resumes.py
+Devika S
+pdfplumber, python-docx, Claude API
+matching.py
+Sanjay Philip
+sentence-transformers, FastAPI
+jobs.py
+Akshay K R
+Adzuna API, JSearch API, FastAPI
+applications.py
+Akshay K R
+FastAPI, PostgreSQL
+chat.py
+Sanjay Philip
+Claude API (tool-calling), WebSocket
+9.2 Sprint Timeline
+Sprint 1 (Weeks 1-2) — Foundation: Auth + DB Schema + Resume Parser
+Sprint 2 (Weeks 3-4) — Core ML: Match Score + Applicant Filtering + Auto-Apply setup
+Sprint 3 (Weeks 5-6) — Integration: Frontend APIs + Chat Assistant + E2E testing
+10. Workflows
+10.1 Seeker & Employer Workflows
+
+Figure 10.1 — Parallel workflows for seekers and employers
+10.2 AI Chat Assistant Placement
+Position: Persistent icon beside the navigation bar, accessible from every screen
+Dimensions: Slide-up panel (400×520px), floating trigger (56px circle)
+Context Switching: Automatically adapts behavior based on active role
+Routing: Queries routed to relevant modules via tool-calling, keeping responses grounded in system data
+11. UI/UX Specifications
+11.1 Design System
+Color Palette: Primary #3B82F6, Success #22C55E, Warning #F59E0B, Danger #EF4444
+Typography: Inter font, 14px base, responsive scaling
+Spacing: 4px base unit, Tailwind spacing scale
+Components: Shadcn/UI primitives with custom theming
+11.2 Key Screen Mockups
+
+Figure 11.1 — UI Mockups: Resume Upload, Match Score, Job Feed, Employer Applicants
+11.3 Responsive Design
+Mobile (< 768px): Sidebar → bottom nav, chat widget full-screen overlay
+Tablet (768-1024px): Collapsible sidebar, 2-column layouts
+Desktop (> 1024px): Full sidebar, 3-column layouts, persistent chat
+12. Implementation Status & Roadmap
+12.1 Currently Implemented (Demo-Ready)
+User registration & JWT auth
+Resume upload & pattern-matching parse
+Match Score computation (40% keyword + 60% semantic)
+Bidirectional ranking (candidates + opportunities)
+Job posting CRUD
+Application submission & tracking
+AI Chat Assistant with role routing
+12.2 Planned / In Development
+LLM-based resume rewriting (Claude API) — Sprint 3
+Per-listing Auto-Apply (Playwright + Celery) — Sprint 3
+Persisted external job aggregation (Adzuna/JSearch) — Sprint 3
+Natural language gap/fit summaries — Post-MVP
+Saved jobs / bookmarks — Post-MVP
+Analytics dashboard — Post-MVP
+13. Deployment & DevOps
+13.1 Environment Setup
+Environment
+Frontend
+Backend
+Database
+Production
+Vercel
+Railway
+Railway-managed PostgreSQL
+Development
+Local (Vite dev server)
+Local (Uvicorn)
+Docker Compose PostgreSQL
+13.2 Environment Variables
+Variable
+Purpose
+Required
+DATABASE_URL
+PostgreSQL connection string
+Yes
+SECRET_KEY
+JWT signing key (HS256)
+Yes
+CLAUDE_API_KEY
+Anthropic API for parsing/rewriting/chat
+Optional
+ADZUNA_API_KEY
+Adzuna job aggregation
+Optional
+JSEARCH_API_KEY
+RapidAPI JSearch authentication
+Optional
+14. Appendices
+Appendix A: Scoring Algorithm
+Match Score = (keyword_score × 0.40) + (semantic_score × 0.60)
+keyword_score = Jaccard similarity between resume skills and job requirements
+semantic_score = Cosine similarity between sentence-transformer embeddings
+Both normalized to 0-100. Gap report includes: missing_skills, experience_gaps, keyword_mismatches, strengths
+Appendix B: Security Measures
+HTTPS for all API communications
+Bcrypt password hashing
+JWT with configurable expiration (HS256)
+SQL injection mitigation via SQLAlchemy ORM
+Request validation via Pydantic
+File upload validation (type, size, MIME)
+CORS origin restriction
+
+Document prepared by Team 05 — Sanjay Philip, Akshay K R, Devika S
+Department of Computer Applications
+Version 2.0 | Reconciled Implementation Documentation | July 2026

@@ -1,0 +1,392 @@
+
+SYNAPSE
+Implementation-Aligned Project Documentation
+Reconciled against the current codebase (README.md) — requirements, user stories, module ownership, database schema, API reference, and UI sketches
+Team No. 05
+Sanjay Philip · Akshay K R · Devika S
+
+0. Reconciliation Summary
+This document supersedes the earlier proposal-based preparation document. It is written directly against the project's current README.md, so every requirement, story, and schema entry below is tagged as either Implemented (present in the code/endpoints) or Planned (mentioned in the README's Future Enhancements or Core Features text but not yet backed by a module, endpoint, or table).
+Area
+Original Proposal
+Current Implementation
+Resume Parsing
+Claude API (LLM) structures resume text into JSON
+Pattern matching only; Claude API key is optional / unused — LLM parsing is a Future Enhancement
+Resume Rewriting
+Grounded, evidence-based rewrite suggestions
+Not implemented; no rewrite endpoint or table exists yet
+Match Scoring
+Keyword + semantic similarity, weighting unspecified
+Weighting is now explicit: 40% keyword, 60% semantic
+Auto-Apply
+Per-listing opt-in via Playwright automation
+Described as a Core Feature but has no endpoint, no automation dependency, and no log table
+External Jobs
+Aggregated, deduplicated, ranked into the feed
+Aggregation is designed but results are not persisted — no ExternalJobs table
+Gap Report
+Separate, structured entity linked to a match score
+Flattened into a JSON column on MatchScores
+
+1. Requirement Collection
+Requirements below are drawn directly from the README's architecture, core features, and API sections, split into what is implemented today versus what is explicitly documented as planned.
+1.1 Implemented Functional Requirements
+ID
+Requirement
+Status
+FR-01
+User can register a new account (POST /api/v1/auth/register).
+Implemented
+FR-02
+User can log in and receive a JWT (POST /api/v1/auth/login).
+Implemented
+FR-03
+User can fetch their own profile (GET /api/v1/auth/me).
+Implemented
+FR-04
+Seeker can upload a resume in PDF or DOCX format (POST /api/v1/resumes/upload).
+Implemented
+FR-05
+System extracts resume text and parses it into structured JSON via pattern matching.
+Implemented
+FR-06
+Seeker can view, list, and delete their own resumes.
+Implemented
+FR-07
+Employer can create, list, view, update, and delete job postings.
+Implemented
+FR-08
+System computes an overall Match Score (40% keyword + 60% semantic) for a resume/job pair.
+Implemented
+FR-09
+Employer can retrieve a ranked candidate list for a job posting.
+Implemented
+FR-10
+Seeker can retrieve a ranked list of job opportunities.
+Implemented
+FR-11
+Seeker can submit an application to a job with a chosen resume; match score is auto-calculated.
+Implemented
+FR-12
+Seeker can view their submitted applications and application details.
+Implemented
+FR-13
+User can send a query to the AI chat assistant, routed by role context (seeker/employer).
+Implemented
+FR-14
+User can retrieve their chat history.
+Implemented
+1.2 Planned / Not Yet Implemented Requirements
+Listed under the README's “Future Enhancements” and “Core Features” sections but without a corresponding endpoint, dependency, or schema entry in the current codebase.
+ID
+Requirement
+Status
+FR-15
+LLM-based resume rewriting grounded in real experience, via Claude API integration.
+Planned
+FR-16
+Per-listing opt-in Auto-Apply to external platforms.
+Planned
+FR-17
+Persisted, deduplicated storage of aggregated external job listings (Adzuna, JSearch).
+Planned
+FR-18
+Real-time websocket notifications.
+Planned
+FR-19
+LinkedIn profile parsing.
+Planned
+FR-20
+Interview scheduling integration.
+Planned
+FR-21
+Salary negotiation assistant.
+Planned
+FR-22
+Analytics dashboard.
+Planned
+FR-23
+Mobile app (React Native).
+Planned
+FR-24
+Advanced search filters and saved searches.
+Planned
+1.3 Non-Functional Requirements
+ID
+Category
+Requirement
+Status
+NFR-01
+Security
+JWT authentication (HS256), bcrypt password hashing, configurable CORS origins.
+Implemented
+NFR-02
+Security
+SQL-injection mitigation via SQLAlchemy ORM; request validation via Pydantic.
+Implemented
+NFR-03
+Configurability
+Environment-driven config for DB URL, secret key, token expiry, CORS, optional API keys.
+Implemented
+NFR-04
+Performance
+Embedding caching for sentence-transformer outputs.
+Documented
+NFR-05
+Performance
+Database indexing on user_id, job_id, and match scores.
+Documented
+NFR-06
+Performance
+Paginated database queries and rate limiting for external API calls.
+Documented
+NFR-07
+Deployment
+Containerized local dev via Docker Compose; frontend on Vercel, backend+DB on Railway.
+Implemented
+NFR-08
+Testability
+Backend tests via pytest; frontend tests via npm run test.
+Implemented
+“Documented” means the README lists it as a performance practice/goal; it isn't independently verifiable as shipped from the README alone and is worth confirming directly with whoever owns matching.py and jobs.py.
+
+2. User Stories
+Same standard “As a … I want … so that …” form as before, now tagged with implementation status rather than sprint priority, so the team can see at a glance what's demoable today.
+2.1 Seeker Stories
+ID
+User Story
+Status
+US-01
+As a seeker, I want to register and log in so that I have a secure, personal account.
+Implemented
+US-02
+As a seeker, I want to upload my resume so that the system can parse it into structured data.
+Implemented
+US-03
+As a seeker, I want to see a Match Score and gap report against a job so that I know how strong my fit is.
+Implemented
+US-04
+As a seeker, I want AI-suggested, grounded resume rewrites so that I can improve weak sections without fabricating experience.
+Planned
+US-05
+As a seeker, I want a ranked list of job opportunities so that I can prioritize where to apply.
+Implemented
+US-06
+As a seeker, I want to submit an application with a chosen resume so that employers can review me.
+Implemented
+US-07
+As a seeker, I want to opt in to Auto-Apply on a specific external listing so that I save time on jobs I'm confident about.
+Planned
+US-08
+As a seeker, I want to view my submitted applications and their status so that I can track my job search.
+Implemented
+US-09
+As a seeker, I want to ask the AI chat assistant about my score or resume so that I get help without leaving the page.
+Implemented
+2.2 Employer Stories
+ID
+User Story
+Status
+US-10
+As an employer, I want to create, edit, and remove job postings so that my openings stay current.
+Implemented
+US-11
+As an employer, I want applicants automatically ranked against my posting so that I focus on the strongest candidates first.
+Implemented
+US-12
+As an employer, I want a written explanation of each candidate's gap/fit, not just a number, so that I understand the ranking.
+Planned
+US-13
+As an employer, I want to query the AI chat assistant about my applicant pool so that I can search conversationally.
+Implemented
+2.3 Shared / Platform Stories
+ID
+User Story
+Status
+US-14
+As a user, I want my role (seeker/employer) enforced across the API so that I only see relevant screens and actions.
+Implemented
+US-15
+As a seeker, I want external job listings to stay consistent across visits (persisted, deduplicated) so I don't see the same job scored twice.
+Planned
+
+3. Module Identification & Team Ownership
+Modules are now the actual backend files and frontend areas named in the README, rather than the report's abstract module list. Ownership keeps the same vertical split as before so each member stays the domain expert for their slice.
+3.1 Backend Modules (FastAPI)
+File
+Responsibility
+Owner
+auth.py
+User registration, login, JWT issuance, current-user lookup.
+Devika S
+resumes.py
+Resume upload, text extraction, pattern-matching parse, storage, retrieval, deletion.
+Devika S
+jobs.py
+Job posting CRUD; external job aggregation design (Adzuna, JSearch).
+Akshay K R
+matching.py
+Bidirectional matching engine: keyword + semantic scoring, ranked candidates/opportunities.
+Sanjay Philip
+applications.py
+Application submission, tracking, status, and detail retrieval.
+Akshay K R
+chat.py
+AI chat assistant query routing by role context; chat history.
+Sanjay Philip
+3.2 Frontend Areas (React + Vite)
+Area
+Responsibility
+Owner
+Seeker Portal
+Resume management, job browsing, application tracking.
+Devika S / Akshay K R
+Employer Dashboard
+Job posting management, candidate review and ranking.
+Akshay K R
+Chat Assistant UI
+Persistent, context-aware assistant widget for both roles.
+Sanjay Philip
+3.3 Ownership Summary
+Team Member
+Owns
+Currently Missing From Their Area
+Sanjay Philip
+matching.py, chat.py, Chat Assistant UI
+Claude API integration for rewriting (FR-15) is unbuilt
+Akshay K R
+jobs.py, applications.py, Employer Dashboard, deployment
+Auto-apply (FR-16) and external job persistence (FR-17)
+Devika S
+auth.py, resumes.py, database schema
+SeekerProfile / EmployerProfile tables not yet split out
+
+4. Database Schema (as implemented)
+This reflects the schema exactly as documented in the README: five tables, no separate profile tables, and the gap report stored inline as JSON rather than as its own entity.
+
+Fig 1. Entity-Relationship Diagram of the current implementation, with a callout for entities implied elsewhere in the README but absent from the schema.
+4.1 Table Reference
+Table
+Key Columns
+Notes
+Users
+id, email, hashed_password, full_name, role, created_at
+role ∈ {seeker, employer}; no separate profile table
+Resumes
+id, user_id (FK), file_path, parsed_data (JSON), text_content
+parsed_data comes from pattern matching, not an LLM
+JobPostings
+id, employer_id (FK), title, description, requirements (JSON), location
+on-platform postings only
+MatchScores
+id, resume_id (FK), job_posting_id (FK), overall_score, keyword_match, semantic_match, gap_report (JSON)
+single table serves both matching directions
+Applications
+id, applicant_id (FK), job_posting_id (FK), resume_id (FK), match_score
+match_score appears duplicated from MatchScores rather than referenced by FK
+
+5. API Reference
+Grouped exactly as listed in the README, for use as a quick lookup while building the frontend or writing integration tests.
+5.1 Authentication
+Method
+Endpoint
+Description
+POST
+/api/v1/auth/register
+Register new user
+POST
+/api/v1/auth/login
+Login
+GET
+/api/v1/auth/me
+Get current user
+5.2 Resumes
+Method
+Endpoint
+Description
+POST
+/api/v1/resumes/upload
+Upload resume
+GET
+/api/v1/resumes/{resume_id}
+Get resume details
+GET
+/api/v1/resumes/user/all
+Get user's resumes
+DELETE
+/api/v1/resumes/{resume_id}
+Delete resume
+5.3 Jobs
+Method
+Endpoint
+Description
+POST
+/api/v1/jobs/
+Create job posting
+GET
+/api/v1/jobs/
+List all jobs
+GET
+/api/v1/jobs/{job_id}
+Get job details
+PUT
+/api/v1/jobs/{job_id}
+Update job
+DELETE
+/api/v1/jobs/{job_id}
+Delete job
+5.4 Matching & Scoring
+Method
+Endpoint
+Description
+POST
+/api/v1/matching/match-resume/{resume_id}/{job_id}
+Calculate match score
+GET
+/api/v1/matching/job/{job_id}/candidates
+Get ranked candidates
+GET
+/api/v1/matching/user/opportunities
+Get ranked job opportunities
+5.5 Applications
+Method
+Endpoint
+Description
+POST
+/api/v1/applications/apply/{job_id}/{resume_id}
+Submit application
+GET
+/api/v1/applications/user
+Get user's applications
+GET
+/api/v1/applications/{app_id}
+Get application details
+—
+(none)
+No auto-apply endpoint exists yet — see FR-16
+5.6 Chat
+Method
+Endpoint
+Description
+POST
+/api/v1/chat/query
+Send query to AI assistant
+GET
+/api/v1/chat/history
+Get chat history
+
+6. UI Sketches
+Same low-fidelity wireframes as the original preparation document, with captions updated to flag which on-screen elements are implemented today versus still aspirational per the README.
+6.1 Seeker — Resume Upload & Match Score
+
+Fig 2. Upload, target JD, and Match Score/gap report are implemented. The “Suggested Rewrites” panel is Planned — no rewrite endpoint exists yet (FR-15).
+6.2 Seeker — Ranked Job Feed
+
+Fig 3. Ranked opportunities (GET /matching/user/opportunities) are implemented. “Auto-Apply” is Planned (FR-16); “Go to Site” maps to submitting an application manually today.
+6.3 Employer — Dashboard & Applicant Ranking
+
+Fig 4. Ranked candidates are implemented. Per-candidate gap/fit text is Planned — today this is a numeric score plus a JSON gap_report field (US-12).
+6.4 AI Chat Assistant (Persistent Widget)
+
+Fig 5. Implemented: POST /chat/query with role-context routing, and GET /chat/history.
