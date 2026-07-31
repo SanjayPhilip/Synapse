@@ -68,6 +68,9 @@ export interface JobPosting {
   salary_currency: string;
   job_type: string | null;
   category?: string;
+  auto_screening_enabled?: boolean;
+  auto_approve_threshold?: number;
+  auto_reject_threshold?: number;
   status: string;
   external_source: string | null;
   external_id: string | null;

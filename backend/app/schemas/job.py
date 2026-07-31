@@ -16,6 +16,9 @@ class JobPostingCreate(BaseModel):
     salary_currency: str = "USD"
     job_type: Optional[str] = None
     category: Optional[str] = "Software Engineering"
+    auto_screening_enabled: Optional[bool] = True
+    auto_approve_threshold: Optional[int] = 85
+    auto_reject_threshold: Optional[int] = 50
     status: str = "active"
 
 
@@ -30,6 +33,9 @@ class JobPostingUpdate(BaseModel):
     salary_max: Optional[int] = None
     job_type: Optional[str] = None
     category: Optional[str] = None
+    auto_screening_enabled: Optional[bool] = None
+    auto_approve_threshold: Optional[int] = None
+    auto_reject_threshold: Optional[int] = None
     status: Optional[str] = None
 
 
@@ -47,6 +53,9 @@ class JobPostingResponse(BaseModel):
     salary_currency: str
     job_type: Optional[str] = None
     category: Optional[str] = "Software Engineering"
+    auto_screening_enabled: bool = True
+    auto_approve_threshold: int = 85
+    auto_reject_threshold: int = 50
     status: str
     external_source: Optional[str] = None
     external_id: Optional[str] = None

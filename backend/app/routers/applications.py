@@ -70,10 +70,33 @@ async def create_application(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Already applied to this job")
 
+    job_result = await db.execute(select(JobPosting).where(JobPosting.id == data.job_posting_id))
+    job = job_result.scalar_one_or_none()
+
+    status = "applied"
+    match_score_val = 0
+    if job and getattr(job, 'auto_screening_enabled', True):
+        from app.models import MatchScore
+        ms_res = await db.execute(
+            select(MatchScore).where(
+                MatchScore.seeker_id == current_user.id,
+                MatchScore.job_posting_id == data.job_posting_id,
+            )
+        )
+        ms = ms_res.scalar_one_or_none()
+        if ms:
+            match_score_val = ms.overall_score
+            if match_score_val >= getattr(job, 'auto_approve_threshold', 85):
+                status = "shortlisted"
+            elif match_score_val < getattr(job, 'auto_reject_threshold', 50):
+                status = "rejected"
+
     app = Application(
         seeker_id=current_user.id,
         job_posting_id=data.job_posting_id,
         resume_id=data.resume_id,
+        status=status,
+        match_score=match_score_val,
         applied_via=data.applied_via,
     )
     db.add(app)

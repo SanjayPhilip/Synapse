@@ -23,6 +23,10 @@ export function PostingsPage() {
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
   const [jobType, setJobType] = useState('full_time');
+  const [category, setCategory] = useState('Software Engineering');
+  const [autoScreeningEnabled, setAutoScreeningEnabled] = useState(true);
+  const [autoApproveThreshold, setAutoApproveThreshold] = useState('85');
+  const [autoRejectThreshold, setAutoRejectThreshold] = useState('50');
   const [status, setStatus] = useState('active');
   const [saving, setSaving] = useState(false);
   const [appCounts, setAppCounts] = useState<Record<string, number>>({});
@@ -54,7 +58,9 @@ export function PostingsPage() {
     setEditingJob(null);
     setTitle(''); setDescription(''); setRequirements(''); setResponsibilities('');
     setLocation(''); setIsRemote(false); setSalaryMin(''); setSalaryMax('');
-    setJobType('full_time'); setCategory('Software Engineering'); setStatus('active');
+    setJobType('full_time'); setCategory('Software Engineering');
+    setAutoScreeningEnabled(true); setAutoApproveThreshold('85'); setAutoRejectThreshold('50');
+    setStatus('active');
     setShowForm(true);
   }
 
@@ -70,6 +76,9 @@ export function PostingsPage() {
     setSalaryMax(job.salary_max?.toString() || '');
     setJobType(job.job_type || 'full_time');
     setCategory(job.category || 'Software Engineering');
+    setAutoScreeningEnabled(job.auto_screening_enabled ?? true);
+    setAutoApproveThreshold(job.auto_approve_threshold?.toString() || '85');
+    setAutoRejectThreshold(job.auto_reject_threshold?.toString() || '50');
     setStatus(job.status);
     setShowForm(true);
   }
@@ -91,6 +100,9 @@ export function PostingsPage() {
         salary_currency: 'USD',
         job_type: jobType,
         category,
+        auto_screening_enabled: autoScreeningEnabled,
+        auto_approve_threshold: autoApproveThreshold ? parseInt(autoApproveThreshold) : 85,
+        auto_reject_threshold: autoRejectThreshold ? parseInt(autoRejectThreshold) : 50,
         status,
       };
 
@@ -228,6 +240,27 @@ export function PostingsPage() {
                 <option value="internship">Internship</option>
               </select>
             </div>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-4 bg-slate-50 dark:bg-slate-800/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">⚡ AI Auto-Screening Workflow (1000+ Apps Automation)</h4>
+                <p className="text-xs text-slate-500">Automatically shortlist high match applicants and reject below threshold</p>
+              </div>
+              <input type="checkbox" className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" checked={autoScreeningEnabled} onChange={(e) => setAutoScreeningEnabled(e.target.checked)} />
+            </div>
+            {autoScreeningEnabled && (
+              <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                <div>
+                  <label className="label text-xs">Auto-Shortlist Threshold (%)</label>
+                  <input type="number" className="input text-xs" value={autoApproveThreshold} onChange={(e) => setAutoApproveThreshold(e.target.value)} placeholder="85" min="0" max="100" />
+                </div>
+                <div>
+                  <label className="label text-xs">Auto-Reject Threshold (%)</label>
+                  <input type="number" className="input text-xs" value={autoRejectThreshold} onChange={(e) => setAutoRejectThreshold(e.target.value)} placeholder="50" min="0" max="100" />
+                </div>
+              </div>
+            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
