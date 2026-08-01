@@ -203,7 +203,7 @@ Current status of all outstanding work, tracked here until done. Legend: `[ ]` =
 
 ### 📱 Functionality
 
-- [ ] **In-app notifications** — notification table + bell UI: seeker notified on application status change (auto-shortlist / auto-reject / employer decision); employer notified on new application.
+- [x] **In-app notifications** — notification table + bell UI: seeker notified on application status change (auto-shortlist / auto-reject / employer decision); employer notified on new application.
 - [ ] **Job alerts** — "notify me when a new job matches my resume" (subscribe to a domain feed / saved job; alert on new matching posting).
 - [ ] **Background / scheduled matching** — recompute match scores when a job posting or resume changes (currently computed on-demand per request).
 - [ ] **Employer ↔ seeker messaging** — the chat assistant is an AI bot; no direct two-way contact between employer and candidate.
