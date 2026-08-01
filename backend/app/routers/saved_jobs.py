@@ -39,6 +39,8 @@ async def list_saved_jobs(
                 "employer_id": str(s.job_posting.employer_id),
                 "location": s.job_posting.location,
                 "job_type": s.job_posting.job_type,
+                "requirements": s.job_posting.requirements,
+                "external_url": s.job_posting.external_url,
             }
         out.append(d)
     return out
