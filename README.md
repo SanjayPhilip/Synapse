@@ -151,6 +151,8 @@ pip install -r requirements.txt
 # Initialize & Seed Database Schema
 python -m app.init_db
 python -m app.seed
+# Or, from the project root in one step:
+npm run setup:db
 
 # Run FastAPI Development Server
 python -m uvicorn app.main:app --reload --port 8000
