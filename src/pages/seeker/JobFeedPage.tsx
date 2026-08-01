@@ -146,7 +146,11 @@ export function JobFeedPage() {
   }
 
   async function handleApply(job: JobPosting, via: 'platform' | 'manual_redirect') {
-    if (!profile || !resume) return;
+    if (!profile) return;
+    if (!resume) {
+      alert('Please upload a resume first before applying.');
+      return;
+    }
     try {
       await createApplication({
         seeker_id: profile.id,
@@ -428,7 +432,8 @@ export function JobFeedPage() {
                 <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
                   <button
                     onClick={() => handleApply(job, 'platform')}
-                    className="btn-primary flex-1"
+                    disabled={!resume}
+                    className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Zap className="h-3.5 w-3.5" /> Apply
                   </button>

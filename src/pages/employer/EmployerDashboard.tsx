@@ -50,8 +50,8 @@ export function EmployerDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Employer Dashboard</h1>
-          <p className="text-slate-500">Welcome, {profile?.company_name || profile?.full_name}</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Employer Dashboard</h1>
+          <p className="text-slate-500 dark:text-slate-400">Welcome, {profile?.company_name || profile?.full_name}</p>
         </div>
         <Link to="/app/postings" className="btn-primary">
           <Plus className="h-4 w-4" /> New Posting
@@ -68,8 +68,8 @@ export function EmployerDashboard() {
               </div>
               <ArrowRight className="h-4 w-4 text-slate-300" />
             </div>
-            <div className="mt-3 text-2xl font-bold text-slate-900">{stat.value}</div>
-            <div className="text-sm text-slate-500">{stat.label}</div>
+            <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</div>
           </Link>
         ))}
       </div>
@@ -77,18 +77,18 @@ export function EmployerDashboard() {
       {/* Recent postings */}
       <div className="card p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Recent Job Postings</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white">Recent Job Postings</h3>
           <Link to="/app/postings" className="text-sm font-medium text-primary-600 hover:text-primary-700">View all</Link>
         </div>
         <div className="mt-4 space-y-3">
           {jobs.length === 0 ? (
-            <p className="text-sm text-slate-500">No job postings yet. Create your first posting to start receiving applications.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">No job postings yet. Create your first posting to start receiving applications.</p>
           ) : (
             jobs.slice(0, 5).map((job) => (
-              <Link key={job.id} to="/app/applicants" className="flex items-center justify-between rounded-lg border border-slate-200 p-4 transition-colors hover:border-primary-300">
+              <Link key={job.id} to="/app/applicants" className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 p-4 transition-colors hover:border-primary-300">
                 <div className="min-w-0">
-                  <div className="font-medium text-slate-900">{job.title}</div>
-                  <div className="text-xs text-slate-500">{job.location || 'Remote'}</div>
+                  <div className="font-medium text-slate-900 dark:text-white">{job.title}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{job.location || 'Remote'}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`badge ${job.status === 'active' ? 'bg-success-100 text-success-700' : job.status === 'draft' ? 'bg-warning-100 text-warning-700' : 'bg-slate-100 text-slate-600'}`}>
@@ -108,8 +108,8 @@ export function EmployerDashboard() {
             <Briefcase className="h-6 w-6 text-primary-600" />
           </div>
           <div>
-            <div className="font-semibold text-slate-900">Manage Postings</div>
-            <div className="text-sm text-slate-500">Create, edit, and close job listings</div>
+            <div className="font-semibold text-slate-900 dark:text-white">Manage Postings</div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">Create, edit, and close job listings</div>
           </div>
         </Link>
         <Link to="/app/applicants" className="card flex items-center gap-4 p-5 transition-all hover:shadow-md">
@@ -117,8 +117,8 @@ export function EmployerDashboard() {
             <Users className="h-6 w-6 text-accent-600" />
           </div>
           <div>
-            <div className="font-semibold text-slate-900">Review Applicants</div>
-            <div className="text-sm text-slate-500">View ranked candidates and shortlist</div>
+            <div className="font-semibold text-slate-900 dark:text-white">Review Applicants</div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">View ranked candidates and shortlist</div>
           </div>
         </Link>
       </div>

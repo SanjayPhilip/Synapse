@@ -48,8 +48,8 @@ export function SeekerDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Welcome back, {profile?.full_name?.split(' ')[0]}</h1>
-        <p className="text-slate-500">Here's your job search overview</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Welcome back, {profile?.full_name?.split(' ')[0]}</h1>
+        <p className="text-slate-500 dark:text-slate-400">Here's your job search overview</p>
       </div>
 
       {/* Stats */}
@@ -62,8 +62,8 @@ export function SeekerDashboard() {
               </div>
               <ArrowRight className="h-4 w-4 text-slate-300" />
             </div>
-            <div className="mt-3 text-2xl font-bold text-slate-900">{stat.value}</div>
-            <div className="text-sm text-slate-500">{stat.label}</div>
+            <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</div>
           </Link>
         ))}
       </div>
@@ -71,7 +71,7 @@ export function SeekerDashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Resume status */}
         <div className="card p-6 lg:col-span-1">
-          <h3 className="text-base font-semibold text-slate-900">Resume Status</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white">Resume Status</h3>
           {resume ? (
             <div className="mt-4">
               <div className="flex items-center gap-3">
@@ -79,15 +79,15 @@ export function SeekerDashboard() {
                   <FileText className="h-5 w-5 text-success-600" />
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-slate-900">{resume.file_name}</div>
-                  <div className="text-xs text-slate-500">{resume.skills.length} skills extracted</div>
+                  <div className="text-sm font-medium text-slate-900 dark:text-white">{resume.file_name}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{resume.skills.length} skills extracted</div>
                 </div>
               </div>
               <Link to="/app/resume" className="btn-secondary mt-4 w-full">View Resume</Link>
             </div>
           ) : (
             <div className="mt-4">
-              <p className="text-sm text-slate-500">You haven't uploaded a resume yet. Upload one to start matching with jobs.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">You haven't uploaded a resume yet. Upload one to start matching with jobs.</p>
               <Link to="/app/resume" className="btn-primary mt-4 w-full">Upload Resume</Link>
             </div>
           )}
@@ -95,8 +95,8 @@ export function SeekerDashboard() {
 
         {/* Quick match */}
         <div className="card p-6 lg:col-span-1">
-          <h3 className="text-base font-semibold text-slate-900">Quick Match Score</h3>
-          <p className="mt-1 text-sm text-slate-500">Paste a job description to see your match score</p>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white">Quick Match Score</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Paste a job description to see your match score</p>
           <div className="mt-4 flex flex-col items-center">
             <ScoreRing score={0} size={100} />
             <Link to="/app/match" className="btn-primary mt-4 w-full">
@@ -107,14 +107,14 @@ export function SeekerDashboard() {
 
         {/* Recent applications */}
         <div className="card p-6 lg:col-span-1">
-          <h3 className="text-base font-semibold text-slate-900">Recent Applications</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white">Recent Applications</h3>
           {applications.length > 0 ? (
             <div className="mt-4 space-y-2">
               {applications.slice(0, 3).map((app) => (
-                <div key={app.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+                <div key={app.id} className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-slate-900">{app.job_posting?.title}</div>
-                    <div className="text-xs text-slate-500 capitalize">{app.status}</div>
+                    <div className="truncate text-sm font-medium text-slate-900 dark:text-white">{app.job_posting?.title}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 capitalize">{app.status}</div>
                   </div>
                   {app.match_score && (
                     <span className="badge bg-primary-100 text-primary-700">{app.match_score.toFixed(0)}%</span>
@@ -123,7 +123,7 @@ export function SeekerDashboard() {
               ))}
             </div>
           ) : (
-            <p className="mt-4 text-sm text-slate-500">No applications yet. Browse the job feed to get started.</p>
+            <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">No applications yet. Browse the job feed to get started.</p>
           )}
           <Link to="/app/applications" className="btn-ghost mt-4 w-full">View All</Link>
         </div>
@@ -132,16 +132,16 @@ export function SeekerDashboard() {
       {/* Recommended jobs */}
       <div className="card p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Recommended Jobs</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white">Recommended Jobs</h3>
           <Link to="/app/jobs" className="text-sm font-medium text-primary-600 hover:text-primary-700">View all</Link>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {jobs.slice(0, 3).map((job) => (
-            <Link key={job.id} to="/app/jobs" className="rounded-lg border border-slate-200 p-4 transition-all hover:border-primary-300 hover:shadow-sm">
-              <div className="text-sm font-semibold text-slate-900">{job.title}</div>
-              <div className="text-xs text-slate-500">{job.location || 'Remote'}</div>
+            <Link key={job.id} to="/app/jobs" className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 transition-all hover:border-primary-300 hover:shadow-sm">
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">{job.title}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">{job.location || 'Remote'}</div>
               {job.salary_min && (
-                <div className="mt-2 text-xs text-slate-600">${job.salary_min.toLocaleString()} - ${job.salary_max?.toLocaleString()}</div>
+                <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">${job.salary_min.toLocaleString()} - ${job.salary_max?.toLocaleString()}</div>
               )}
             </Link>
           ))}

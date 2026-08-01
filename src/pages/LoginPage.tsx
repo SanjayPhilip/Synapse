@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, ArrowLeft, AlertCircle } from 'lucide-react';
 import { signIn } from '@/lib/auth';
 import { forgotPassword } from '@/lib/api';
@@ -143,7 +143,8 @@ export function LoginPage() {
 }
 
 function ForgotPasswordButton() {
-  const [open, setOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [open, setOpen] = useState(() => searchParams.get('forgotPassword') === '1');
   const [resetEmail, setResetEmail] = useState('');
   const [msg, setMsg] = useState('');
   const [resetLink, setResetLink] = useState('');
@@ -153,6 +154,11 @@ function ForgotPasswordButton() {
   function handleOpen() {
     setOpen(true);
     setMsg(''); setErr(''); setResetEmail(''); setResetLink('');
+  }
+
+  function handleClose() {
+    setOpen(false);
+    if (searchParams.has('forgotPassword')) setSearchParams({});
   }
 
   async function handleReset(e: FormEvent) {
@@ -186,11 +192,11 @@ function ForgotPasswordButton() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={handleClose} />
           <div className="relative z-10 w-full max-w-sm card p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-slate-900">Reset Password</h3>
-              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+              <button onClick={handleClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
             </div>
 
             {msg ? (
@@ -208,7 +214,7 @@ function ForgotPasswordButton() {
                     </a>
                   </div>
                 )}
-                <button onClick={() => setOpen(false)} className="btn-primary w-full text-sm">Back to Login</button>
+                <button onClick={handleClose} className="btn-primary w-full text-sm">Back to Login</button>
               </div>
             ) : (
               <form onSubmit={handleReset} className="space-y-3">
@@ -229,7 +235,7 @@ function ForgotPasswordButton() {
                   </div>
                 )}
                 <div className="flex gap-2 pt-1">
-                  <button type="button" onClick={() => setOpen(false)} className="btn-secondary flex-1">Cancel</button>
+                  <button type="button" onClick={handleClose} className="btn-secondary flex-1">Cancel</button>
                   <button type="submit" disabled={submitting} className="btn-primary flex-1">
                     {submitting ? 'Sending...' : 'Send Reset Link'}
                   </button>

@@ -45,8 +45,8 @@ export function parseResumeText(rawText: string): ResumeData {
   if (emailMatch) data.contact!.email = emailMatch[0];
 
   // Phone
-  const phoneMatch = rawText.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}/);
-  if (phoneMatch) data.contact!.phone = phoneMatch[0];
+  const phoneMatch = rawText.match(/(?:\+?\d{1,3}[\s-]?)?(?:\(\d+\)[\s-]?)?\d[\d\s-]{7,12}\d/);
+  if (phoneMatch) data.contact!.phone = phoneMatch[0].trim();
 
   // LinkedIn
   const linkedinMatch = rawText.match(/linkedin\.com\/(in\/[\w-]+)/i);
@@ -72,11 +72,17 @@ export function parseResumeText(rawText: string): ResumeData {
   }
 
   // Skills section
-  const skillsIdx = lines.findIndex((l) => /^(technical\s+)?skills?[:\s]/i.test(l));
+  const skillsIdx = lines.findIndex((l) => /^(technical\s+)?skills?\b/i.test(l));
   if (skillsIdx >= 0) {
     const skillsLine = lines[skillsIdx].replace(/^(technical\s+)?skills?[:\s]*/i, '');
-    const afterLine = lines.slice(skillsIdx + 1).slice(0, 5).join(' ');
-    const allSkills = (skillsLine + ' ' + afterLine)
+    const collected = [skillsLine];
+    for (let j = skillsIdx + 1; j < Math.min(skillsIdx + 6, lines.length); j++) {
+      const nxt = lines[j];
+      if (/^(experience|education|certifications?|projects?|summary)\b/i.test(nxt) || /\b\d{4}\b/.test(nxt)) break;
+      collected.push(nxt);
+    }
+    const allSkills = collected
+      .join(' ')
       .split(/[,;|•·]\s*|\s{2,}/)
       .map((s) => s.trim())
       .filter((s) => s.length > 1 && s.length < 40);
@@ -101,19 +107,24 @@ export function parseResumeText(rawText: string): ResumeData {
   }
 
   // Experience section
-  const expIdx = lines.findIndex((l) => /^(work\s+)?experience[:\s]/i.test(l));
+  const expIdx = lines.findIndex((l) => /^(work\s+)?experience\b/i.test(l));
   if (expIdx >= 0) {
     let i = expIdx + 1;
-    while (i < lines.length && !/^(education|certifications?|projects?|skills?)[:\s]/i.test(lines[i])) {
+    while (i < lines.length && !/^(education|certifications?|projects?|skills?)\b/i.test(lines[i])) {
       const line = lines[i];
       if (line.length > 3) {
         const dateMatch = line.match(/(\d{4})\s*[-–]\s*(\d{4}|present|current)/i);
         if (dateMatch) {
+          const descLines: string[] = [];
+          for (const dl of lines.slice(i + 1, i + 4)) {
+            if (/^(education|certifications?|projects?|skills?)\b/i.test(dl)) break;
+            descLines.push(dl);
+          }
           data.experience!.push({
             title: line.replace(/\d{4}.*$/, '').trim() || 'Position',
             start_date: dateMatch[1],
             end_date: dateMatch[2] || '',
-            description: lines.slice(i + 1, i + 4).join(' ').slice(0, 300),
+            description: descLines.join(' ').slice(0, 300),
           });
           i += 4;
           continue;
@@ -129,10 +140,10 @@ export function parseResumeText(rawText: string): ResumeData {
   }
 
   // Education section
-  const eduIdx = lines.findIndex((l) => /^education[:\s]/i.test(l));
+  const eduIdx = lines.findIndex((l) => /^education\b/i.test(l));
   if (eduIdx >= 0) {
     let i = eduIdx + 1;
-    while (i < lines.length && !/^(experience|certifications?|projects?|skills?)[:\s]/i.test(lines[i]) && i < eduIdx + 10) {
+    while (i < lines.length && !/^(experience|certifications?|projects?|skills?)\b/i.test(lines[i]) && i < eduIdx + 10) {
       const line = lines[i];
       if (line.length > 3) {
         const degreeMatch = line.match(/(b\.?sc\.?|b\.?tech\.?|m\.?sc\.?|m\.?tech\.?|mba|ph\.?d|bachelor|master|diploma)/i);

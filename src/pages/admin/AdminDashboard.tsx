@@ -159,8 +159,8 @@ export function AdminDashboard() {
           <Shield className="h-6 w-6 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Admin Control Panel</h1>
-          <p className="text-sm text-slate-500">System-wide oversight and management</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Admin Control Panel</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">System-wide oversight and management</p>
         </div>
       </div>
 
@@ -177,15 +177,15 @@ export function AdminDashboard() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+      <div className="flex gap-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
               tab === t.id
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <t.icon className="h-4 w-4" />
@@ -209,16 +209,16 @@ export function AdminDashboard() {
                 <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-${card.color}-100`}>
                   <card.icon className={`h-5 w-5 text-${card.color}-600`} />
                 </div>
-                <div className="text-2xl font-bold text-slate-900">{card.value}</div>
-                <div className="mt-0.5 text-sm font-medium text-slate-700">{card.label}</div>
-                <div className="mt-1 text-xs text-slate-400">{card.sub}</div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white">{card.value}</div>
+                <div className="mt-0.5 text-sm font-medium text-slate-700 dark:text-slate-300">{card.label}</div>
+                <div className="mt-1 text-xs text-slate-400 dark:text-slate-500">{card.sub}</div>
               </div>
             ))}
           </div>
 
           {/* Role Breakdown */}
           <div className="card p-6">
-            <h2 className="mb-4 text-base font-semibold text-slate-900">User Role Breakdown</h2>
+            <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-white">User Role Breakdown</h2>
             <div className="space-y-3">
               {[
                 { label: 'Job Seekers', count: stats.total_seekers, total: stats.total_users, color: 'bg-primary-500' },
@@ -227,10 +227,10 @@ export function AdminDashboard() {
               ].map(bar => (
                 <div key={bar.label}>
                   <div className="mb-1 flex justify-between text-sm">
-                    <span className="font-medium text-slate-700">{bar.label}</span>
-                    <span className="text-slate-500">{bar.count}</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{bar.label}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{bar.count}</span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                     <div
                       className={`h-full rounded-full ${bar.color} transition-all`}
                       style={{ width: bar.total > 0 ? `${(bar.count / bar.total) * 100}%` : '0%' }}
@@ -244,18 +244,18 @@ export function AdminDashboard() {
           {/* Recent Activity Preview */}
           <div className="card p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-slate-900">Recent Applications</h2>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Recent Applications</h2>
               <button onClick={() => setTab('activity')} className="text-xs font-medium text-primary-600 hover:text-primary-700">View all →</button>
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {activity.slice(0, 5).map(a => (
                 <div key={a.id} className="flex items-center gap-3 py-2.5">
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300">
                     {a.seeker_name[0]}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900">{a.seeker_name}</p>
-                    <p className="truncate text-xs text-slate-500">Applied to {a.job_title}</p>
+                    <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{a.seeker_name}</p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">Applied to {a.job_title}</p>
                   </div>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusColor[a.status] || 'bg-slate-100 text-slate-600'}`}>
                     {a.status}
@@ -277,29 +277,29 @@ export function AdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">User</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Role</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Company</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Joined</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-                  <th className="px-4 py-3 text-center font-semibold text-slate-600">Actions</th>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">User</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Role</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Company</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Joined</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Status</th>
+                  <th className="px-4 py-3 text-center font-semibold text-slate-600 dark:text-slate-300">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {users.map(u => (
-                  <tr key={u.id} className="hover:bg-slate-50">
+                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{u.full_name}</div>
-                      <div className="text-xs text-slate-500">{u.email}</div>
+                      <div className="font-medium text-slate-900 dark:text-white">{u.full_name}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{u.email}</div>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${roleColor[u.role] || 'bg-slate-100 text-slate-600'}`}>
                         {u.role}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{u.company_name || '—'}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{u.company_name || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
                       {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-4 py-3">
@@ -343,31 +343,31 @@ export function AdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Job Title</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Employer</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Location</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Type</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Apps</th>
-                  <th className="px-4 py-3 text-center font-semibold text-slate-600">Actions</th>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Job Title</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Employer</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Location</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Type</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Apps</th>
+                  <th className="px-4 py-3 text-center font-semibold text-slate-600 dark:text-slate-300">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {jobs.map(j => (
-                  <tr key={j.id} className="hover:bg-slate-50">
+                  <tr key={j.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{j.title}</div>
+                      <div className="font-medium text-slate-900 dark:text-white">{j.title}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-slate-700">{j.employer_name}</div>
-                      <div className="text-xs text-slate-400">{j.company_name}</div>
+                      <div className="text-slate-700 dark:text-slate-300">{j.employer_name}</div>
+                      <div className="text-xs text-slate-400 dark:text-slate-500">{j.company_name}</div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                       {j.location || '—'}
                       {j.is_remote && <span className="ml-1 text-xs text-primary-600">(Remote)</span>}
                     </td>
-                    <td className="px-4 py-3 capitalize text-slate-600">{j.job_type?.replace('_', ' ') || '—'}</td>
+                    <td className="px-4 py-3 capitalize text-slate-600 dark:text-slate-300">{j.job_type?.replace('_', ' ') || '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
                         j.status === 'active' ? 'bg-success-100 text-success-700' : 'bg-slate-100 text-slate-600'
@@ -375,7 +375,7 @@ export function AdminDashboard() {
                         {j.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-700">{j.applications_count}</td>
+                    <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-300">{j.applications_count}</td>
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => deleteJob(j)}
@@ -400,22 +400,22 @@ export function AdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Applicant</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Applied For</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Match Score</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Applied On</th>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Applicant</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Applied For</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Match Score</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Applied On</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {activity.map(a => (
-                  <tr key={a.id} className="hover:bg-slate-50">
+                  <tr key={a.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{a.seeker_name}</div>
-                      <div className="text-xs text-slate-500">{a.seeker_email}</div>
+                      <div className="font-medium text-slate-900 dark:text-white">{a.seeker_name}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{a.seeker_email}</div>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{a.job_title}</td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{a.job_title}</td>
                     <td className="px-4 py-3">
                       {a.match_score !== null
                         ? <span className="font-semibold text-success-600">{a.match_score.toFixed(1)}%</span>
@@ -426,7 +426,7 @@ export function AdminDashboard() {
                         {a.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 flex items-center gap-1">
+                    <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {a.created_at ? new Date(a.created_at).toLocaleDateString() : '—'}
                     </td>

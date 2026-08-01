@@ -14,7 +14,10 @@ export function LandingPage() {
             <span className="text-lg font-bold text-slate-900">Synapse</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/login" className="btn-ghost">Sign In</Link>
+            <div className="flex items-center gap-1">
+              <Link to="/login?forgotPassword=1" className="btn-ghost text-sm">Forgot password?</Link>
+              <Link to="/login" className="btn-ghost">Sign In</Link>
+            </div>
             <Link to="/register/seeker" className="btn-primary">Get Started</Link>
           </div>
         </div>

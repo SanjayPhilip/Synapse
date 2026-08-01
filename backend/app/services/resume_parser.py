@@ -17,9 +17,9 @@ def parse_resume_text(raw_text: str) -> dict:
     if email_match:
         data["contact"]["email"] = email_match.group()
 
-    phone_match = re.search(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}', raw_text)
+    phone_match = re.search(r'(?:\+?\d{1,3}[\s-]?)?(?:\(\d+\)[\s-]?)?\d[\d\s-]{7,12}\d', raw_text)
     if phone_match:
-        data["contact"]["phone"] = phone_match.group()
+        data["contact"]["phone"] = phone_match.group().strip()
 
     linkedin_match = re.search(r'linkedin\.com/(in/[\w-]+)', raw_text, re.I)
     if linkedin_match:
@@ -41,14 +41,19 @@ def parse_resume_text(raw_text: str) -> dict:
             break
 
     skills_idx = next(
-        (i for i, l in enumerate(lines) if re.match(r'^(technical\s+)?skills?[:\s]', l, re.I)),
+        (i for i, l in enumerate(lines) if re.match(r'^(technical\s+)?skills?\b', l, re.I)),
         -1,
     )
     if skills_idx >= 0:
         skills_line = re.sub(r'^(technical\s+)?skills?[:\s]*', '', lines[skills_idx], flags=re.I)
-        after_lines = " ".join(lines[skills_idx + 1: skills_idx + 6])
-        all_skills = re.split(r'[,;|•·]\s*|\s{2,}', skills_line + " " + after_lines)
-        data["skills"] = list({s.strip() for s in all_skills if 1 < len(s.strip()) < 40})
+        all_skills = [skills_line]
+        for j in range(skills_idx + 1, min(skills_idx + 6, len(lines))):
+            nxt = lines[j]
+            if re.match(r'^(experience|education|certifications?|projects?|summary)\b', nxt, re.I) or re.search(r'\b\d{4}\b', nxt):
+                break
+            all_skills.append(nxt)
+        split = re.split(r'[,;|•·]\s*|\s{2,}', " ".join(all_skills))
+        data["skills"] = list({s.strip() for s in split if 1 < len(s.strip()) < 40})
 
     if not data["skills"]:
         tech_keywords = [
@@ -64,21 +69,26 @@ def parse_resume_text(raw_text: str) -> dict:
         ]
 
     exp_idx = next(
-        (i for i, l in enumerate(lines) if re.match(r'^(work\s+)?experience[:\s]', l, re.I)),
+        (i for i, l in enumerate(lines) if re.match(r'^(work\s+)?experience\b', l, re.I)),
         -1,
     )
     if exp_idx >= 0:
         i = exp_idx + 1
-        while i < len(lines) and not re.match(r'^(education|certifications?|projects?|skills?)[:\s]', lines[i], re.I):
+        while i < len(lines) and not re.match(r'^(education|certifications?|projects?|skills?)\b', lines[i], re.I):
             line = lines[i]
             if len(line) > 3:
                 date_match = re.search(r'(\d{4})\s*[-–]\s*(\d{4}|present|current)', line, re.I)
                 if date_match:
+                    desc_lines = []
+                    for dl in lines[i + 1: i + 4]:
+                        if re.match(r'^(education|certifications?|projects?|skills?)\b', dl, re.I):
+                            break
+                        desc_lines.append(dl)
                     data["experience"].append({
                         "title": re.sub(r'\d{4}.*$', '', line).strip() or "Position",
                         "start_date": date_match.group(1),
                         "end_date": date_match.group(2) or "",
-                        "description": " ".join(lines[i + 1: i + 4])[:300],
+                        "description": " ".join(desc_lines)[:300],
                     })
                     i += 4
                     continue
@@ -89,12 +99,12 @@ def parse_resume_text(raw_text: str) -> dict:
             i += 1
 
     edu_idx = next(
-        (i for i, l in enumerate(lines) if re.match(r'^education[:\s]', l, re.I)),
+        (i for i, l in enumerate(lines) if re.match(r'^education\b', l, re.I)),
         -1,
     )
     if edu_idx >= 0:
         i = edu_idx + 1
-        while i < len(lines) and not re.match(r'^(experience|certifications?|projects?|skills?)[:\s]', lines[i], re.I) and i < edu_idx + 10:
+        while i < len(lines) and not re.match(r'^(experience|certifications?|projects?|skills?)\b', lines[i], re.I) and i < edu_idx + 10:
             line = lines[i]
             if len(line) > 3:
                 degree_match = re.search(

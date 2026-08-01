@@ -1,3 +1,4 @@
+import io
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +9,22 @@ from app.schemas.resume import ResumeCreate, ResumeUpdate, ResumeResponse
 from app.middleware.auth import get_current_user
 from app.services.resume_parser import parse_resume_text, extract_skills_from_data
 from app.services.gemini import parse_resume_with_ai
+
+
+def extract_text_from_file(content: bytes, file_type: str | None) -> str:
+    if file_type == "pdf":
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            return "\n".join(p.extract_text() or "" for p in pdf.pages)
+    if file_type == "docx":
+        import docx
+        document = docx.Document(io.BytesIO(content))
+        parts = [p.text for p in document.paragraphs]
+        for table in document.tables:
+            for row in table.rows:
+                parts.append(" | ".join(cell.text for cell in row.cells))
+        return "\n".join(parts)
+    return content.decode("utf-8", errors="replace")
 
 router = APIRouter(prefix="/api/v1/resumes", tags=["resumes"])
 
@@ -59,7 +76,14 @@ async def upload_resume(
         raise HTTPException(status_code=400, detail="File too large (max 5MB)")
 
     content = await file.read()
-    raw_text = content.decode("utf-8", errors="replace")
+
+    file_type = None
+    if file.filename:
+        ext = file.filename.rsplit(".", 1)[-1].lower()
+        if ext in ("pdf", "docx", "txt"):
+            file_type = ext
+
+    raw_text = extract_text_from_file(content, file_type)
 
     parsed_data = parse_resume_text(raw_text)
     skills = extract_skills_from_data(parsed_data)
@@ -71,12 +95,6 @@ async def upload_resume(
             skills = ai_parsed.get("skills", skills)
     except Exception:
         pass
-
-    file_type = None
-    if file.filename:
-        ext = file.filename.rsplit(".", 1)[-1].lower()
-        if ext in ("pdf", "docx", "txt"):
-            file_type = ext
 
     await db.execute(
         update(Resume).where(Resume.user_id == current_user.id, Resume.is_current == True).values(is_current=False)
