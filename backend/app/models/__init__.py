@@ -44,6 +44,7 @@ class Profile(Base):
     saved_jobs = relationship("SavedJob", back_populates="seeker", cascade="all, delete-orphan")
     auto_apply_logs = relationship("AutoApplyLog", back_populates="seeker", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    job_alerts = relationship("JobAlert", back_populates="seeker", cascade="all, delete-orphan")
 
 
 class Resume(Base):
@@ -177,6 +178,20 @@ class SavedJob(Base):
 
     seeker = relationship("Profile", back_populates="saved_jobs")
     job_posting = relationship("JobPosting", back_populates="saved_jobs")
+
+
+class JobAlert(Base):
+    __tablename__ = "job_alerts"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    seeker_id = Column(GUID, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    keywords = Column(JSON, nullable=False, default=[])
+    category = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    seeker = relationship("Profile", back_populates="job_alerts")
 
 
 class RewriteSuggestion(Base):

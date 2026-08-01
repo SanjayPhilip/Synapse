@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification } from '@/types';
+import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert } from '@/types';
 
 // ============ RESUMES ============
 export async function getResumes(_userId: string): Promise<Resume[]> {
@@ -112,6 +112,23 @@ export async function saveJob(seekerId: string, jobPostingId: string, matchScore
 
 export async function unsaveJob(seekerId: string, jobPostingId: string): Promise<void> {
   await api.delete(`/api/v1/saved-jobs/${jobPostingId}`);
+}
+
+// ============ JOB ALERTS ============
+export async function getJobAlerts(): Promise<JobAlert[]> {
+  return api.get<JobAlert[]>('/api/v1/job-alerts');
+}
+
+export async function createJobAlert(data: { keywords: string[]; category?: string | null; location?: string | null }): Promise<JobAlert> {
+  return api.post<JobAlert>('/api/v1/job-alerts', data);
+}
+
+export async function updateJobAlert(id: string, updates: Partial<JobAlert>): Promise<JobAlert> {
+  return api.put<JobAlert>(`/api/v1/job-alerts/${id}`, updates);
+}
+
+export async function deleteJobAlert(id: string): Promise<void> {
+  return api.delete(`/api/v1/job-alerts/${id}`);
 }
 
 // ============ REWRITE SUGGESTIONS ============

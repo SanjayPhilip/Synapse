@@ -3,11 +3,43 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
-from app.models import JobPosting, Profile
+from app.models import JobPosting, Profile, JobAlert
 from app.schemas.job import JobPostingCreate, JobPostingUpdate, JobPostingResponse
 from app.middleware.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
+
+
+async def _match_job_alerts(db: AsyncSession, job: JobPosting):
+    result = await db.execute(select(JobAlert).where(JobAlert.is_active == True))
+    alerts = result.scalars().all()
+    if not alerts:
+        return
+
+    title_desc = f"{job.title} {job.description}".lower()
+    job_category = (job.category or "").lower()
+    job_location = (job.location or "").lower()
+    matched = []
+    for alert in alerts:
+        kw_match = any(k.lower() in title_desc for k in (alert.keywords or []))
+        cat_match = bool(alert.category) and alert.category.lower() == job_category
+        loc_match = bool(alert.location) and alert.location.lower() in job_location
+        if kw_match or cat_match or loc_match:
+            matched.append(alert)
+
+    if not matched:
+        return
+
+    from app.routers.applications import _notify
+    for alert in matched:
+        await _notify(
+            db,
+            alert.seeker_id,
+            "New job alert",
+            f"A new job matches your alert: \"{job.title}\"",
+            "job_alert",
+            link="/app/jobs",
+        )
 
 
 @router.get("", response_model=list[JobPostingResponse])
@@ -58,6 +90,7 @@ async def create_job(
     db.add(job)
     await db.flush()
     await db.refresh(job)
+    await _match_job_alerts(db, job)
     return job
 
 

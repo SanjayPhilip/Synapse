@@ -6,7 +6,7 @@ import asyncio
 from app.database import engine, Base
 from app.models import (
     Profile, Resume, JobPosting, Application, MatchScore,
-    ChatSession, ChatMessage, SavedJob, RewriteSuggestion, AutoApplyLog, Notification,
+    ChatSession, ChatMessage, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert,
 )
 
 

@@ -10,6 +10,7 @@ import { ResumePage } from '@/pages/seeker/ResumePage';
 import { MatchScorePage } from '@/pages/seeker/MatchScorePage';
 import { JobFeedPage } from '@/pages/seeker/JobFeedPage';
 import { ApplicationsPage } from '@/pages/seeker/ApplicationsPage';
+import { JobAlertsPage } from '@/pages/seeker/JobAlertsPage';
 import { EmployerDashboard } from '@/pages/employer/EmployerDashboard';
 import { PostingsPage } from '@/pages/employer/PostingsPage';
 import { ApplicantsPage } from '@/pages/employer/ApplicantsPage';
@@ -52,6 +53,7 @@ function AppRoutes() {
     '/app/match': 'match',
     '/app/jobs': 'jobs',
     '/app/applications': 'applications',
+    '/app/alerts': 'alerts',
     '/app/postings': 'postings',
     '/app/applicants': 'applicants',
     '/app/analytics': 'analytics',
@@ -118,6 +120,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <AppShell activeModule="applications">
             <ApplicationsPage />
+          </AppShell>
+        </ProtectedRoute>
+      } />
+      <Route path="/app/alerts" element={
+        <ProtectedRoute>
+          <AppShell activeModule="alerts">
+            <JobAlertsPage />
           </AppShell>
         </ProtectedRoute>
       } />

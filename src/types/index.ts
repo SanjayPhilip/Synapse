@@ -164,6 +164,16 @@ export interface RewriteSuggestion {
 
 export type AutoApplyStatus = 'pending' | 'in_progress' | 'success' | 'failed' | 'cancelled';
 
+export interface JobAlert {
+  id: string;
+  seeker_id: string;
+  keywords: string[];
+  category: string | null;
+  location: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface Notification {
   id: string;
   user_id: string;
