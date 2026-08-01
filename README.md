@@ -211,7 +211,7 @@ Current status of all outstanding work, tracked here until done. Legend: `[ ]` =
 - [ ] **Real email delivery (SMTP)** — reset links and future status/job emails currently surface in the UI and server log (demo mode), not via an SMTP provider.
 - [ ] **Real auto-apply** — replace the client-side simulation (`AutoApplyButton.tsx`) with a Celery + Playwright worker (FR-30).
 - [ ] **Persisted external-job aggregation** — store deduplicated Adzuna / JSearch listings in the database with a scheduled refresh (FR-31).
-- [ ] **WebSocket live push** — push the in-app notifications above in real time instead of on page load (FR-32).
+- [x] **WebSocket live push** — push the in-app notifications above in real time instead of on page load (FR-32).
 - [ ] **Interview scheduling** — calendar flow for shortlisted candidates (FR-33).
 - [ ] **Mobile app** — React Native companion (FR-34).
 

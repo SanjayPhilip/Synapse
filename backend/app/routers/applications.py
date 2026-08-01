@@ -10,13 +10,29 @@ from app.middleware.auth import get_current_user
 
 
 async def _notify(db: AsyncSession, user_id, title: str, message: str, notification_type: str = "info", link: str | None = None):
-    db.add(Notification(
+    notification = Notification(
         user_id=user_id,
         title=title,
         message=message,
         notification_type=notification_type,
         link=link,
-    ))
+    )
+    db.add(notification)
+    await db.flush()
+    from app.routers.ws import send_to_user
+    await send_to_user(user_id, {
+        "type": "notification",
+        "data": {
+            "id": str(notification.id),
+            "user_id": str(notification.user_id),
+            "title": notification.title,
+            "message": notification.message,
+            "notification_type": notification.notification_type,
+            "link": notification.link,
+            "is_read": notification.is_read,
+            "created_at": notification.created_at.isoformat(),
+        },
+    })
 
 
 def _to_response(app: Application) -> ApplicationResponse:

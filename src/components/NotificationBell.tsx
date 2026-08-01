@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, BellOff } from 'lucide-react';
 import { getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead } from '@/lib/api';
+import { API_BASE } from '@/lib/api-client';
 import type { Notification } from '@/types';
 
 export function NotificationBell({ position = 'right', up = false }: { position?: 'left' | 'right'; up?: boolean }) {
@@ -22,6 +23,35 @@ export function NotificationBell({ position = 'right', up = false }: { position?
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const rawToken = localStorage.getItem('synapse_token');
+    if (!rawToken) return;
+    const token: string = rawToken;
+    const proto = API_BASE.startsWith('https') ? 'wss' : 'ws';
+    let ws: WebSocket | null = null;
+    let closed = false;
+    let retry: number | undefined;
+
+    function open() {
+      ws = new WebSocket(`${proto}://${API_BASE.replace(/^https?:\/\//, '')}/api/v1/ws/notifications?token=${encodeURIComponent(token)}`);
+      ws.onopen = () => { if (retry) { clearTimeout(retry); retry = undefined; } };
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg?.type === 'notification' && msg.data) {
+            setNotifications((prev) => [msg.data as Notification, ...prev]);
+            setUnread((u) => u + 1);
+          }
+        } catch { /* ignore malformed frames */ }
+      };
+      ws.onclose = () => {
+        if (!closed) retry = window.setTimeout(open, 5000);
+      };
+    }
+    open();
+    return () => { closed = true; if (retry) clearTimeout(retry); ws?.close(); };
   }, []);
 
   useEffect(() => {
