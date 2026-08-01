@@ -76,7 +76,7 @@ export function AppShell({ children, activeModule }: { children: ReactNode; acti
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       {/* Sidebar - Desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 lg:flex">
         <SidebarContent
           profile={profile}
           isAdmin={isAdmin}
@@ -187,7 +187,7 @@ function SidebarContent({ profile, isAdmin, isEmployer, navItems, activeModule, 
         </div>
       )}
 
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
         {navItems.map((item) => {
           const active = location.pathname === item.path || activeModule === item.id || location.pathname.startsWith(item.path);
           return (
