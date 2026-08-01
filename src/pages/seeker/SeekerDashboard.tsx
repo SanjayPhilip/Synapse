@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Target, Briefcase, Bookmark, TrendingUp, ArrowRight } from 'lucide-react';
+import { FileText, Target, Briefcase, Bookmark, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getCurrentResume, getJobPostings, getApplications, getSavedJobs } from '@/lib/api';
 import type { Resume, JobPosting, Application, SavedJob } from '@/types';

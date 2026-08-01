@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Briefcase, Edit2, Trash2, X, Eye, EyeOff, Users } from 'lucide-react';
+import { Plus, Briefcase, Edit2, Trash2, Eye, EyeOff, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getJobPostings, createJobPosting, updateJobPosting, deleteJobPosting, getApplicationsForJob } from '@/lib/api';
 import { seedSampleJobs } from '@/lib/seed';

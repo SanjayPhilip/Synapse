@@ -1,4 +1,4 @@
-import type { GapReport, ResumeData, JobPosting } from '@/types';
+import type { GapReport, ResumeData } from '@/types';
 
 export interface GapSummary {
   headline: string;

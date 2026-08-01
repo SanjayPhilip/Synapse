@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Zap, AlertCircle, CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { Zap, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import type { JobPosting, Resume } from '@/types';
 import { createAutoApplyLog, updateAutoApplyLog, createApplication } from '@/lib/api';
 import { Modal, Spinner } from '@/components/ui';

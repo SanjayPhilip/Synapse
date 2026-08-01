@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Sparkles, Brain, Check, Edit3, FileText, Loader2 } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, Brain, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getCurrentResume, getJobPostings, updateRewriteSuggestion, createChatSession, sendChatMessage, createRewriteSuggestions } from '@/lib/api';
 import { computeMatchScore } from '@/lib/matching';
 import { generateRewriteSuggestions } from '@/lib/rewrite-engine';
-import type { RewriteSuggestion, Resume, JobPosting } from '@/types';
+import type { RewriteSuggestion, JobPosting } from '@/types';
 
 interface Message {
   id: string;

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Users, BarChart3, Plus, ArrowRight, TrendingUp } from 'lucide-react';
+import { Briefcase, Users, BarChart3, Plus, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getJobPostings, getApplicationsForJob } from '@/lib/api';
 import { seedSampleJobs } from '@/lib/seed';
-import type { JobPosting, Application } from '@/types';
+import type { JobPosting } from '@/types';
 import { Spinner } from '@/components/ui';
 
 export function EmployerDashboard() {

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Briefcase, MapPin, DollarSign, ExternalLink, Bookmark, Zap, Search, SlidersHorizontal, Globe, Loader2, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getCurrentResume, getResumes, getJobPostings, createApplication, saveJob, unsaveJob, getSavedJobs, saveMatchScore } from '@/lib/api';
-import { computeMatchScore, scoreLabel } from '@/lib/matching';
+import { getCurrentResume, getResumes, getJobPostings, createApplication, saveJob, unsaveJob, getSavedJobs } from '@/lib/api';
+import { computeMatchScore } from '@/lib/matching';
 import type { Resume, JobPosting, SavedJob } from '@/types';
 import { Spinner, EmptyState, Badge } from '@/components/ui';
 import { AutoApplyButton } from '@/components/AutoApplyButton';

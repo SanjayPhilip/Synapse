@@ -10,7 +10,6 @@ AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform — 
 - **SQLAlchemy 2.0** — async ORM with PostgreSQL / SQLite
 - **sentence-transformers** — real ML embeddings (`all-MiniLM-L6-v2`)
 - **Gemini API** — resume parsing, rewrite suggestions, chat assistant
-- **Adzuna + JSearch APIs** — external job search
 - **JWT + bcrypt** — authentication
 
 ## API Endpoints
@@ -45,9 +44,6 @@ AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform — 
 - `POST /api/v1/matching/compute` — Ad-hoc match computation
 - `GET /api/v1/matching/job/{jid}/candidates` — Ranked candidates
 - `GET /api/v1/matching/user/opportunities` — Ranked opportunities
-
-### External Jobs
-- `GET /api/v1/external-jobs/search?query=&location=&page=` — Search Adzuna + JSearch with deduplication
 
 ### Chat
 - `GET /api/v1/chat/sessions` — List sessions

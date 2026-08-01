@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Target, Zap, CheckCircle2, XCircle, AlertCircle, Save } from 'lucide-react';
+import { Target, Zap, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getCurrentResume, getJobPostings, saveMatchScore } from '@/lib/api';
 import { computeMatchScore, scoreLabel, type ScoreResult } from '@/lib/matching';
-import type { Resume, JobPosting, GapReport } from '@/types';
+import type { Resume, JobPosting } from '@/types';
 import { ScoreRing, ProgressBar, Spinner, EmptyState } from '@/components/ui';
 import { RewriteSuggestions } from '@/components/RewriteSuggestions';
 import { generateSeekerGapSummary } from '@/lib/gap-summary';
@@ -307,7 +307,7 @@ export function MatchScorePage() {
         if (!job) return null;
         return (
           <div className="card p-6">
-            <RewriteSuggestions resume={resume} job={job} gapReport={result.gap_report} />
+            <RewriteSuggestions resume={resume} job={job} />
           </div>
         );
       })()}

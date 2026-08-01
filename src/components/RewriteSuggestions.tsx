@@ -4,13 +4,11 @@ import type { Resume, JobPosting, RewriteSuggestion } from '@/types';
 import { getRewriteSuggestions, createRewriteSuggestions, updateRewriteSuggestion } from '@/lib/api';
 import { computeMatchScore, scoreLabel } from '@/lib/matching';
 import { computeProjectedScore } from '@/lib/projected-score';
-import { Spinner, EmptyState } from '@/components/ui';
-import type { GapReport } from '@/types';
+import { Spinner } from '@/components/ui';
 
-export function RewriteSuggestions({ resume, job, gapReport }: {
+export function RewriteSuggestions({ resume, job }: {
   resume: Resume;
   job: JobPosting;
-  gapReport: GapReport;
 }) {
   const [suggestions, setSuggestions] = useState<RewriteSuggestion[]>([]);
   const [loading, setLoading] = useState(true);

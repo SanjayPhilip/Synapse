@@ -1,10 +1,10 @@
 import { useState, useEffect, type ChangeEvent } from 'react';
-import { Upload, FileText, Save, Trash2, Plus, Download, History, RotateCcw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Upload, FileText, Save, Trash2, Download, History, RotateCcw, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getCurrentResume, getResumes, createResume, updateResume, deleteResume, uploadResume } from '@/lib/api';
 import { parseResumeText, extractSkillsFromData } from '@/lib/resume-parser';
 import type { ResumeData, Resume } from '@/types';
-import { Spinner, EmptyState } from '@/components/ui';
+import { Spinner } from '@/components/ui';
 
 export function ResumePage() {
   const { profile } = useAuth();

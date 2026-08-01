@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Users, Briefcase, FileText, BarChart3, Activity, Shield,
+import {  Users, Briefcase, FileText, BarChart3, Activity, Shield,
   Trash2, ToggleLeft, ToggleRight, AlertCircle, CheckCircle2,
   TrendingUp, Clock, UserCheck, UserX
 } from 'lucide-react';
@@ -55,7 +53,6 @@ interface RecentActivity {
 type AdminTab = 'overview' | 'users' | 'jobs' | 'activity';
 
 export function AdminDashboard() {
-  const navigate = useNavigate();
   const [tab, setTab] = useState<AdminTab>('overview');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);

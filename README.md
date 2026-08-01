@@ -67,7 +67,7 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 | **Database & ORM** | PostgreSQL (AsyncPG / SQLAlchemy 2.0) for production · SQLite for local dev |
 | **Matching & ML** | `sentence-transformers` (`all-MiniLM-L6-v2`) for dense semantic embeddings + token keyword scoring |
 | **AI Services** | Google Gemini API (resume rewrites & AI assistant query routing) |
-| **External Job Feeds** | Adzuna API + JSearch (RapidAPI) with in-memory deduplication |
+| **External Job Feeds** | Adzuna API + JSearch (RapidAPI) via Supabase edge function with in-memory deduplication |
 | **Auth & Security** | JWT (HS256 tokens) + Role-Based Access Control (Admin, Employer, Seeker) + Password Hashing (Bcrypt) + CORS (supports Vite ports `5173`/`5174`) |
 
 ---
@@ -129,14 +129,9 @@ DATABASE_URL_SYNC=sqlite:///./synapse.db
 
 SECRET_KEY=your_secret_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
-
-# Optional — required only for external job search
-ADZUNA_APP_ID=your_adzuna_app_id
-ADZUNA_APP_KEY=your_adzuna_app_key
-JSEARCH_API_KEY=your_jsearch_rapidapi_key
 ```
 
-> 💡 The backend starts without the optional keys — matching, rewrites, and chat need `GEMINI_API_KEY`; the external job feed is disabled until Adzuna/JSearch keys are set.
+> 💡 The backend starts without the optional keys — matching, rewrites, and chat need `GEMINI_API_KEY`. External job search runs from the Supabase edge function (`supabase/functions/job-search`) using Adzuna/JSearch secrets configured in Supabase.
 
 **Frontend** — create `.env` in project root:
 

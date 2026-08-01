@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import type { Profile, UserRole } from '@/types';
+import type { Profile } from '@/types';
 
 interface TokenResponse {
   access_token: string;

@@ -69,7 +69,7 @@ export function generateRewriteSuggestions(
       const relevantKeywords = jdKeywords.filter((kw) => descLower.includes(kw.toLowerCase()));
 
       if (relevantKeywords.length === 0 && gapReport.matched_skills.length > 0) {
-        const rewritten = rewriteExperienceDescription(exp.description, gapReport.matched_skills, jobRequirements);
+        const rewritten = rewriteExperienceDescription(exp.description, gapReport.matched_skills);
         if (rewritten !== exp.description) {
           suggestions.push({
             section_type: 'experience',
@@ -130,18 +130,9 @@ function buildImprovedSummary(
 
 function rewriteExperienceDescription(
   original: string,
-  matchedSkills: string[],
-  jobRequirements: string[]
+  matchedSkills: string[]
 ): string {
   const actionVerbs = ['Spearheaded', 'Architected', 'Developed', 'Implemented', 'Optimized', 'Led', 'Managed', 'Delivered'];
-
-  // Find relevant requirement keywords
-  const reqKeywords = jobRequirements
-    .join(' ')
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((w) => w.length > 3)
-    .slice(0, 10);
 
   const relevantSkills = matchedSkills.slice(0, 3);
   const verb = actionVerbs[Math.floor(Math.random() * actionVerbs.length)];
