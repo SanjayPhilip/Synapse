@@ -25,7 +25,13 @@ async def list_saved_jobs(
     saved = result.scalars().all()
     out = []
     for s in saved:
-        d = SavedJobResponse.model_validate(s)
+        d = SavedJobResponse.model_validate({
+            "id": s.id,
+            "seeker_id": s.seeker_id,
+            "job_posting_id": s.job_posting_id,
+            "match_score_at_save": s.match_score_at_save,
+            "created_at": s.created_at,
+        })
         if s.job_posting:
             d.job_posting = {
                 "id": str(s.job_posting.id),

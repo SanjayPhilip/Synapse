@@ -76,7 +76,7 @@ export function AppShell({ children, activeModule }: { children: ReactNode; acti
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       {/* Sidebar - Desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 lg:flex">
         <SidebarContent
           profile={profile}
           isAdmin={isAdmin}
@@ -231,7 +231,7 @@ function SidebarContent({ profile, isAdmin, isEmployer, navItems, activeModule, 
             <Bell className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             Notifications
           </span>
-          <NotificationBell position="left" />
+          <NotificationBell position="left" up />
         </div>
 
         <div className="flex items-center gap-3 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">

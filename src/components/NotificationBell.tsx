@@ -4,7 +4,7 @@ import { Bell, CheckCheck, BellOff } from 'lucide-react';
 import { getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead } from '@/lib/api';
 import type { Notification } from '@/types';
 
-export function NotificationBell({ position = 'right' }: { position?: 'left' | 'right' }) {
+export function NotificationBell({ position = 'right', up = false }: { position?: 'left' | 'right'; up?: boolean }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
@@ -71,7 +71,7 @@ export function NotificationBell({ position = 'right' }: { position?: 'left' | '
       </button>
 
       {open && (
-        <div className={`absolute ${position === 'right' ? 'right-0' : 'left-0'} top-11 z-50 w-80 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg`}>
+        <div className={`absolute ${position === 'right' ? 'right-0' : 'left-0'} ${up ? 'bottom-11' : 'top-11'} z-50 w-80 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg`}>
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</h3>
             {unread > 0 && (
