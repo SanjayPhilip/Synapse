@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog } from '@/types';
+import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification } from '@/types';
 
 // ============ RESUMES ============
 export async function getResumes(_userId: string): Promise<Resume[]> {
@@ -168,6 +168,24 @@ export async function sendChatMessage(sessionId: string, content: string): Promi
 
 export async function getChatMessages(sessionId: string): Promise<{ role: string; content: string; module_routed: string | null }[]> {
   return api.get(`/api/v1/chat/sessions/${sessionId}/messages`);
+}
+
+// ============ NOTIFICATIONS ============
+export async function getNotifications(): Promise<Notification[]> {
+  return api.get<Notification[]>('/api/v1/notifications');
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const r = await api.get<{ count: number }>('/api/v1/notifications/unread-count');
+  return r.count;
+}
+
+export async function markNotificationRead(id: string): Promise<Notification> {
+  return api.post<Notification>(`/api/v1/notifications/${id}/read`);
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await api.post('/api/v1/notifications/read-all');
 }
 
 // ============ AUTH & RECOVERY ============

@@ -43,6 +43,7 @@ class Profile(Base):
     chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
     saved_jobs = relationship("SavedJob", back_populates="seeker", cascade="all, delete-orphan")
     auto_apply_logs = relationship("AutoApplyLog", back_populates="seeker", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 
 class Resume(Base):
@@ -195,6 +196,21 @@ class RewriteSuggestion(Base):
 
     resume = relationship("Resume", back_populates="rewrite_suggestions")
     job_posting = relationship("JobPosting", back_populates="rewrite_suggestions")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False, default="")
+    notification_type = Column(String, nullable=False, default="info")
+    link = Column(String, nullable=True)
+    is_read = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    user = relationship("Profile", back_populates="notifications")
 
 
 class AutoApplyLog(Base):

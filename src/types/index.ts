@@ -164,6 +164,17 @@ export interface RewriteSuggestion {
 
 export type AutoApplyStatus = 'pending' | 'in_progress' | 'success' | 'failed' | 'cancelled';
 
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  notification_type: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
 export interface AutoApplyLog {
   id: string;
   seeker_id: string;

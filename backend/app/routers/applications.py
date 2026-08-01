@@ -4,9 +4,44 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.database import get_db
-from app.models import Application, JobPosting, Profile
+from app.models import Application, JobPosting, Profile, Notification
 from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse
 from app.middleware.auth import get_current_user
+
+
+async def _notify(db: AsyncSession, user_id, title: str, message: str, notification_type: str = "info", link: str | None = None):
+    db.add(Notification(
+        user_id=user_id,
+        title=title,
+        message=message,
+        notification_type=notification_type,
+        link=link,
+    ))
+
+
+def _to_response(app: Application) -> ApplicationResponse:
+    data = {
+        "id": app.id,
+        "seeker_id": app.seeker_id,
+        "job_posting_id": app.job_posting_id,
+        "resume_id": app.resume_id,
+        "status": app.status,
+        "match_score": app.match_score,
+        "applied_via": app.applied_via,
+        "employer_notes": app.employer_notes,
+        "created_at": app.created_at,
+        "updated_at": app.updated_at,
+    }
+    if app.job_posting:
+        jp = app.job_posting
+        data["job_posting"] = {
+            "id": str(jp.id),
+            "title": jp.title,
+            "employer_id": str(jp.employer_id),
+            "location": jp.location,
+            "job_type": jp.job_type,
+        }
+    return ApplicationResponse.model_validate(data)
 
 router = APIRouter(prefix="/api/v1/applications", tags=["applications"])
 
@@ -23,19 +58,7 @@ async def list_my_applications(
         .order_by(Application.created_at.desc())
     )
     apps = result.scalars().all()
-    out = []
-    for a in apps:
-        d = ApplicationResponse.model_validate(a)
-        if a.job_posting:
-            d.job_posting = {
-                "id": str(a.job_posting.id),
-                "title": a.job_posting.title,
-                "employer_id": str(a.job_posting.employer_id),
-                "location": a.job_posting.location,
-                "job_type": a.job_posting.job_type,
-            }
-        out.append(d)
-    return out
+    return [_to_response(a) for a in apps]
 
 
 @router.get("/job/{job_id}", response_model=list[ApplicationResponse])
@@ -50,9 +73,12 @@ async def list_applications_for_job(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     result = await db.execute(
-        select(Application).where(Application.job_posting_id == job_id).order_by(Application.created_at.desc())
+        select(Application)
+        .options(selectinload(Application.job_posting))
+        .where(Application.job_posting_id == job_id)
+        .order_by(Application.created_at.desc())
     )
-    return result.scalars().all()
+    return [_to_response(a) for a in result.scalars().all()]
 
 
 @router.post("", response_model=ApplicationResponse)
@@ -104,10 +130,16 @@ async def create_application(
         match_score=match_score_val,
         applied_via=data.applied_via,
     )
+    app.job_posting = job
     db.add(app)
     await db.flush()
     await db.refresh(app)
-    return app
+
+    await _notify(db, job.employer_id, "New application", f"{current_user.full_name} applied to \"{job.title}\"", "application", link=f"/app/applicants")
+    if status != "applied":
+        await _notify(db, current_user.id, "Application auto-screened", f"Your application for \"{job.title}\" was {status}.", "application", link="/app/applications")
+
+    return _to_response(app)
 
 
 @router.put("/{application_id}", response_model=ApplicationResponse)
@@ -117,7 +149,11 @@ async def update_application(
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Application).where(Application.id == application_id))
+    result = await db.execute(
+        select(Application)
+        .options(selectinload(Application.job_posting))
+        .where(Application.id == application_id)
+    )
     app = result.scalar_one_or_none()
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -134,6 +170,19 @@ async def update_application(
 
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(app, key, value)
+
+    if "status" in data.model_dump(exclude_unset=True):
+        job_result = await db.execute(select(JobPosting).where(JobPosting.id == app.job_posting_id))
+        job = job_result.scalar_one_or_none()
+        await _notify(
+            db,
+            app.seeker_id,
+            "Application status updated",
+            f"Your application for \"{job.title if job else 'a job'}\" is now {app.status}.",
+            "application",
+            link="/app/applications",
+        )
+
     await db.flush()
     await db.refresh(app)
-    return app
+    return _to_response(app)

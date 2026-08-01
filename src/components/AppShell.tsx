@@ -1,8 +1,9 @@
 import { type ReactNode, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Brain, LayoutDashboard, FileText, Target, Briefcase, Bookmark, Settings, LogOut, Users, BarChart3, Menu, X, User2, Repeat, Shield, Sun, Moon } from 'lucide-react';
+import { Brain, LayoutDashboard, FileText, Target, Briefcase, Bookmark, Settings, LogOut, Users, BarChart3, Menu, X, User2, Repeat, Shield, Sun, Moon, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ChatAssistant } from '@/components/ChatAssistant';
+import { NotificationBell } from '@/components/NotificationBell';
 import { api } from '@/lib/api-client';
 
 export function AppShell({ children, activeModule }: { children: ReactNode; activeModule: string }) {
@@ -125,7 +126,7 @@ export function AppShell({ children, activeModule }: { children: ReactNode; acti
             <Brain className="h-5 w-5 text-primary-600" />
             <span className="font-semibold text-slate-900 dark:text-white">Synapse</span>
           </div>
-          <div className="w-9" />
+          <NotificationBell />
         </header>
 
         <main className="p-4 lg:p-8">
@@ -224,6 +225,14 @@ function SidebarContent({ profile, isAdmin, isEmployer, navItems, activeModule, 
             </>
           )}
         </button>
+
+        <div className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <span className="flex items-center gap-3">
+            <Bell className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+            Notifications
+          </span>
+          <NotificationBell position="left" />
+        </div>
 
         <div className="flex items-center gap-3 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 flex-shrink-0">
