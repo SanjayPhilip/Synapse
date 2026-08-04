@@ -272,7 +272,7 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 - ✅ **Job alerts** — "notify me when a new job matches my resume" (subscribe to a domain feed / saved job; alert on new matching posting).
 - ✅ **Background / scheduled matching** — match scores are recomputed automatically when a resume or job posting changes.
 - 🔲 **Employer ↔ seeker messaging** — the chat assistant is an AI bot; no direct two-way contact between employer and candidate.
-- 🔲 **Real email delivery (SMTP)** — reset links and future status/job emails currently surface in the UI and server log (demo mode), not via an SMTP provider.
+- ✅ **Real email delivery (SMTP)** — verification and password reset emails are sent via SMTP when `SMTP_HOST` is configured; otherwise they fall back to console logging for demo mode.
 - ✅ **Email verification on registration** — new accounts are inactive until email verification; demo mode returns a `verify_token` for immediate verification.
 - 🔲 **Real auto-apply** — replace the client-side simulation (`AutoApplyButton.tsx`) with a Celery + Playwright worker (FR-30).
 - 🔲 **Persisted external-job aggregation** — store deduplicated Adzuna / JSearch listings in the database with a scheduled refresh (FR-31).
