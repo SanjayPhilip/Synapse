@@ -218,7 +218,7 @@ Current status of all outstanding work, tracked here until done. Legend: `[ ]` =
 
 ### 🔐 Security
 
-- [ ] **Enforce a real `SECRET_KEY`** — the config default `change-me-in-production` must be overridden via env on any real deployment (`.env.example` documents this).
+- [x] **Enforce a real `SECRET_KEY`** — startup fails if `SECRET_KEY` is still the default (`.env` override required).
 - [x] **Rate limiting** — in-memory rate limiter on auth endpoints (register 5/60s, login 10/60s, forgot-password 3/60s).
 - [x] **Email verification** — bind account ownership to a verified address (also listed under Functionality).
 

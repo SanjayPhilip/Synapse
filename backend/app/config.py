@@ -28,4 +28,10 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    if settings.SECRET_KEY == "change-me-in-production":
+        raise ValueError(
+            "SECRET_KEY is still the default 'change-me-in-production'. "
+            "Set a real secret in backend/.env — e.g. openssl rand -hex 32"
+        )
+    return settings
