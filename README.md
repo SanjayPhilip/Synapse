@@ -270,7 +270,7 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 
 - ✅ **In-app notifications** — notification table + bell UI: seeker notified on application status change (auto-shortlist / auto-reject / employer decision); employer notified on new application.
 - ✅ **Job alerts** — "notify me when a new job matches my resume" (subscribe to a domain feed / saved job; alert on new matching posting).
-- 🔲 **Background / scheduled matching** — recompute match scores when a job posting or resume changes (currently computed on-demand per request).
+- ✅ **Background / scheduled matching** — match scores are recomputed automatically when a resume or job posting changes.
 - 🔲 **Employer ↔ seeker messaging** — the chat assistant is an AI bot; no direct two-way contact between employer and candidate.
 - 🔲 **Real email delivery (SMTP)** — reset links and future status/job emails currently surface in the UI and server log (demo mode), not via an SMTP provider.
 - ✅ **Email verification on registration** — new accounts are inactive until email verification; demo mode returns a `verify_token` for immediate verification.

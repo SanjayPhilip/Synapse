@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 from app.models import MatchScore
 from app.database import async_session
+from sqlalchemy import select
 
 
 async def _register_and_login(client: AsyncClient, email: str, role: str = 'seeker') -> str:
@@ -46,6 +47,18 @@ async def test_auto_screening_shortlist(client: AsyncClient):
     resume = resume_resp.json()
 
     async with async_session() as session:
+        result = await session.execute(
+            select(MatchScore).where(
+                MatchScore.resume_id == resume['id'],
+                MatchScore.job_posting_id == job['id'],
+                MatchScore.direction == 'seeker',
+            )
+        )
+        existing = result.scalars().all()
+        for ms in existing:
+            await session.delete(ms)
+        await session.commit()
+
         ms = MatchScore(
             resume_id=resume['id'],
             job_posting_id=job['id'],

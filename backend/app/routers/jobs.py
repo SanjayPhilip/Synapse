@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.database import get_db
 from app.models import JobPosting, Profile, JobAlert
 from app.schemas.job import JobPostingCreate, JobPostingUpdate, JobPostingResponse
+from app.services.matching import recompute_scores_for_job
 from app.middleware.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
@@ -91,6 +92,7 @@ async def create_job(
     await db.flush()
     await db.refresh(job)
     await _match_job_alerts(db, job)
+    await recompute_scores_for_job(db, job.id)
     return job
 
 
@@ -111,6 +113,7 @@ async def update_job(
         setattr(job, key, value)
     await db.flush()
     await db.refresh(job)
+    await recompute_scores_for_job(db, job.id)
     return job
 
 

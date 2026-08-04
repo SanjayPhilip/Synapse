@@ -9,6 +9,7 @@ from app.schemas.resume import ResumeCreate, ResumeUpdate, ResumeResponse
 from app.middleware.auth import get_current_user
 from app.services.resume_parser import parse_resume_text, extract_skills_from_data
 from app.services.gemini import parse_resume_with_ai
+from app.services.matching import recompute_scores_for_resume
 
 
 def extract_text_from_file(content: bytes, file_type: str | None) -> str:
@@ -118,6 +119,7 @@ async def upload_resume(
     db.add(resume)
     await db.flush()
     await db.refresh(resume)
+    await recompute_scores_for_resume(db, resume.id)
     return resume
 
 
@@ -149,6 +151,7 @@ async def create_resume_manual(
     db.add(resume)
     await db.flush()
     await db.refresh(resume)
+    await recompute_scores_for_resume(db, resume.id)
     return resume
 
 
@@ -170,6 +173,7 @@ async def update_resume(
         setattr(resume, key, value)
     await db.flush()
     await db.refresh(resume)
+    await recompute_scores_for_resume(db, resume.id)
     return resume
 
 

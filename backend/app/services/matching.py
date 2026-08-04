@@ -2,6 +2,7 @@ import re
 import math
 from collections import Counter
 from typing import Optional
+from uuid import UUID
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
@@ -92,3 +93,97 @@ def compute_match(
         "semantic_score": round(semantic_score, 2),
         "gap_report": gap_report,
     }
+
+
+async def recompute_scores_for_resume(db, resume_id: UUID):
+    from app.models import MatchScore, JobPosting, Resume
+    from sqlalchemy import select
+
+    resume_result = await db.execute(select(Resume).where(Resume.id == resume_id))
+    resume = resume_result.scalar_one_or_none()
+    if not resume:
+        return
+
+    jobs_result = await db.execute(select(JobPosting).where(JobPosting.status == "active"))
+    jobs = jobs_result.scalars().all()
+
+    for job in jobs:
+        scores = compute_match(
+            resume.raw_text,
+            resume.skills or [],
+            job.description,
+            job.requirements or [],
+        )
+        existing = await db.execute(
+            select(MatchScore).where(
+                MatchScore.resume_id == resume_id,
+                MatchScore.job_posting_id == job.id,
+                MatchScore.direction == "seeker",
+            )
+        )
+        ms = existing.scalar_one_or_none()
+        if ms:
+            ms.overall_score = scores["overall_score"]
+            ms.keyword_score = scores["keyword_score"]
+            ms.semantic_score = scores["semantic_score"]
+            ms.gap_report = scores["gap_report"]
+        else:
+            ms = MatchScore(
+                resume_id=resume_id,
+                job_posting_id=job.id,
+                direction="seeker",
+                overall_score=scores["overall_score"],
+                keyword_score=scores["keyword_score"],
+                semantic_score=scores["semantic_score"],
+                gap_report=scores["gap_report"],
+            )
+            db.add(ms)
+    await db.flush()
+
+
+async def recompute_scores_for_job(db, job_id: UUID):
+    from app.models import MatchScore, Resume, JobPosting
+    from sqlalchemy import select
+
+    job_result = await db.execute(select(JobPosting).where(JobPosting.id == job_id))
+    job = job_result.scalar_one_or_none()
+    if not job:
+        return
+
+    resumes_result = await db.execute(
+        select(Resume).where(Resume.user_id == job.employer_id, Resume.is_current == True)
+    )
+    resumes = resumes_result.scalars().all()
+
+    for resume in resumes:
+        scores = compute_match(
+            resume.raw_text,
+            resume.skills or [],
+            job.description,
+            job.requirements or [],
+        )
+        existing = await db.execute(
+            select(MatchScore).where(
+                MatchScore.resume_id == resume.id,
+                MatchScore.job_posting_id == job_id,
+                MatchScore.direction == "seeker",
+            )
+        )
+        ms = existing.scalar_one_or_none()
+        if ms:
+            ms.overall_score = scores["overall_score"]
+            ms.keyword_score = scores["keyword_score"]
+            ms.semantic_score = scores["semantic_score"]
+            ms.gap_report = scores["gap_report"]
+        else:
+            ms = MatchScore(
+                resume_id=resume.id,
+                job_posting_id=job_id,
+                direction="seeker",
+                overall_score=scores["overall_score"],
+                keyword_score=scores["keyword_score"],
+                semantic_score=scores["semantic_score"],
+                gap_report=scores["gap_report"],
+            )
+            db.add(ms)
+    await db.flush()
