@@ -174,6 +174,49 @@ npm run dev
 ```
 - **Web App**: `http://localhost:5173` (Fallback port: `5174` if `5173` is in use)
 
+### 4. Docker Deployment (Production-like)
+
+```bash
+# Create backend/.env with your secrets (or export as env vars)
+export SECRET_KEY=$(openssl rand -hex 32)
+export GEMINI_API_KEY=your_key_here
+
+# Build and start all services
+docker compose up --build -d
+
+# Initialize & seed the database
+docker compose exec backend python -m app.init_db
+docker compose exec backend python -m app.seed
+```
+
+- **Web App**: `http://localhost:80`
+- **API Docs**: `http://localhost:8000/docs`
+
+```bash
+# Stop all services
+docker compose down
+
+# Stop and remove volumes (fresh start)
+docker compose down -v
+```
+
+### 5. Testing
+
+```bash
+# From project root — run frontend lint + typecheck
+npm run lint
+npm run typecheck
+
+# From backend/ — run pytest smoke tests (requires dependencies installed)
+cd backend
+python -m pytest tests/ -v
+```
+
+The backend test suite covers:
+- **Auth**: register, login, email verification, forgot-password / reset-password
+- **Auto-screening**: employer job posting + seeker application + threshold-based status
+- **Match score**: resume-to-job scoring endpoint response structure
+
 ---
 
 ## 🔐 Pre-Seeded Demo Credentials
@@ -200,38 +243,38 @@ The following are **not yet implemented** — see [Feature Status](#-feature-sta
 
 ## ✔️ Everything To Be Done
 
-Current status of all outstanding work, tracked here until done. Legend: `[ ]` = open, `[x]` = done.
+Current status of all outstanding work, tracked here until done. Legend: `🔲` = open, `✅` = done.
 
 ### 📱 Functionality
 
-- [x] **In-app notifications** — notification table + bell UI: seeker notified on application status change (auto-shortlist / auto-reject / employer decision); employer notified on new application.
-- [x] **Job alerts** — "notify me when a new job matches my resume" (subscribe to a domain feed / saved job; alert on new matching posting).
-- [ ] **Background / scheduled matching** — recompute match scores when a job posting or resume changes (currently computed on-demand per request).
-- [ ] **Employer ↔ seeker messaging** — the chat assistant is an AI bot; no direct two-way contact between employer and candidate.
-- [ ] **Real email delivery (SMTP)** — reset links and future status/job emails currently surface in the UI and server log (demo mode), not via an SMTP provider.
-- [x] **Email verification on registration** — new accounts are inactive until email verification; demo mode returns a `verify_token` for immediate verification.
-- [ ] **Real auto-apply** — replace the client-side simulation (`AutoApplyButton.tsx`) with a Celery + Playwright worker (FR-30).
-- [ ] **Persisted external-job aggregation** — store deduplicated Adzuna / JSearch listings in the database with a scheduled refresh (FR-31).
-- [x] **WebSocket live push** — push the in-app notifications above in real time instead of on page load (FR-32).
-- [ ] **Interview scheduling** — calendar flow for shortlisted candidates (FR-33).
-- [ ] **Mobile app** — React Native companion (FR-34).
+- ✅ **In-app notifications** — notification table + bell UI: seeker notified on application status change (auto-shortlist / auto-reject / employer decision); employer notified on new application.
+- ✅ **Job alerts** — "notify me when a new job matches my resume" (subscribe to a domain feed / saved job; alert on new matching posting).
+- 🔲 **Background / scheduled matching** — recompute match scores when a job posting or resume changes (currently computed on-demand per request).
+- 🔲 **Employer ↔ seeker messaging** — the chat assistant is an AI bot; no direct two-way contact between employer and candidate.
+- 🔲 **Real email delivery (SMTP)** — reset links and future status/job emails currently surface in the UI and server log (demo mode), not via an SMTP provider.
+- ✅ **Email verification on registration** — new accounts are inactive until email verification; demo mode returns a `verify_token` for immediate verification.
+- 🔲 **Real auto-apply** — replace the client-side simulation (`AutoApplyButton.tsx`) with a Celery + Playwright worker (FR-30).
+- 🔲 **Persisted external-job aggregation** — store deduplicated Adzuna / JSearch listings in the database with a scheduled refresh (FR-31).
+- ✅ **WebSocket live push** — push the in-app notifications above in real time instead of on page load (FR-32).
+- 🔲 **Interview scheduling** — calendar flow for shortlisted candidates (FR-33).
+- 🔲 **Mobile app** — React Native companion (FR-34).
 
 ### 🔐 Security
 
-- [x] **Enforce a real `SECRET_KEY`** — startup fails if `SECRET_KEY` is still the default (`.env` override required).
-- [x] **Rate limiting** — in-memory rate limiter on auth endpoints (register 5/60s, login 10/60s, forgot-password 3/60s).
-- [x] **Email verification** — bind account ownership to a verified address (also listed under Functionality).
+- ✅ **Enforce a real `SECRET_KEY`** — startup fails if `SECRET_KEY` is still the default (`.env` override required).
+- ✅ **Rate limiting** — in-memory rate limiter on auth endpoints (register 5/60s, login 10/60s, forgot-password 3/60s).
+- ✅ **Email verification** — bind account ownership to a verified address (also listed under Functionality).
 
 ### 🧪 Testing & Deployment
 
-- [ ] **Test suite (NFR-08)** — pytest harness: auth, reset-token, auto-screening, and match-score smoke tests (runtime smoke test for the reset flow exists but is not committed as a suite).
-- [ ] **Docker (NFR-09)** — `Dockerfile` + `docker-compose` for backend, frontend, and Postgres.
-- [ ] **CI pipeline** — lint + typecheck + test on push (GitHub Actions).
-- [ ] **Prod DB migrations** — schema management for PostgreSQL (currently `init_db` creates tables directly).
+- ✅ **Test suite (NFR-08)** — pytest harness: auth, reset-token, auto-screening, and match-score smoke tests.
+- ✅ **Docker (NFR-09)** — `Dockerfile` + `docker-compose` for backend, frontend, and Postgres.
+- ✅ **CI pipeline** — lint + typecheck + test on push (GitHub Actions).
+- 🔲 **Prod DB migrations** — schema management for PostgreSQL (currently `init_db` creates tables directly).
 
 ### 📄 Docs
 
-- [ ] **Test / deploy instructions** — once the suite and Docker land, add a `Testing` and `Deployment` section here.
+- ✅ **Test / deploy instructions** — added `Testing` and `Deployment` sections to README.
 
 ---
 
