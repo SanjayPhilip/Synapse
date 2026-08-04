@@ -10,10 +10,12 @@ interface TokenResponse {
     full_name: string;
     role: string;
     company_name: string | null;
+    is_verified?: boolean;
+    verify_token?: string;
   };
 }
 
-export async function registerSeeker(email: string, password: string, fullName: string): Promise<{ error: string | null }> {
+export async function registerSeeker(email: string, password: string, fullName: string): Promise<{ error: string | null; verify_token?: string; is_verified?: boolean }> {
   try {
     const data = await api.post<TokenResponse>('/api/v1/auth/register', {
       email,
@@ -23,7 +25,7 @@ export async function registerSeeker(email: string, password: string, fullName: 
     });
     localStorage.setItem('synapse_token', data.access_token);
     localStorage.setItem('synapse_user', JSON.stringify(data.user));
-    return { error: null };
+    return { error: null, verify_token: data.user.verify_token, is_verified: data.user.is_verified };
   } catch (e: any) {
     return { error: e.message || 'Registration failed' };
   }
@@ -34,7 +36,7 @@ export async function registerEmployer(
   password: string,
   fullName: string,
   companyName: string
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; verify_token?: string; is_verified?: boolean }> {
   try {
     const data = await api.post<TokenResponse>('/api/v1/auth/register', {
       email,
@@ -45,7 +47,7 @@ export async function registerEmployer(
     });
     localStorage.setItem('synapse_token', data.access_token);
     localStorage.setItem('synapse_user', JSON.stringify(data.user));
-    return { error: null };
+    return { error: null, verify_token: data.user.verify_token, is_verified: data.user.is_verified };
   } catch (e: any) {
     return { error: e.message || 'Registration failed' };
   }

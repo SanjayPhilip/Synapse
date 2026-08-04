@@ -40,6 +40,7 @@ class ProfileResponse(BaseModel):
     company_name: Optional[str] = None
     avatar_url: Optional[str] = None
     is_active: bool
+    is_verified: bool
     created_at: datetime
     updated_at: datetime
 
@@ -52,3 +53,11 @@ class ProfileUpdate(BaseModel):
     company_name: Optional[str] = None
     role: Optional[str] = None
     avatar_url: Optional[str] = None
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class VerifyEmailResponse(BaseModel):
+    message: str

@@ -1,7 +1,7 @@
 # ⚡ SYNAPSE — AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform
 
 **Team No. 05** — *Sanjay Philip · Akshay K R · Devika S*
-**Version**: 2.2.1 (Password Reset & Authentication Update)
+**Version**: 2.3.1 (Rate Limiting & Email Verification)
 
 ---
 
@@ -17,11 +17,11 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 
 ---
 
-## ✅ Feature Status
+## ✔️ Feature Status
 
 | Status | Meaning |
 | :--- | :--- |
-| ✅ **Implemented** | Fully built and demoable end-to-end |
+| ✔️ **Implemented** | Fully built and demoable end-to-end |
 | 🧪 **Demo** | Workflow exists but uses a simulated backend (no external side effects) |
 | 🗺️ **Planned** | Roadmap / future enhancement, not yet built |
 
@@ -30,31 +30,33 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 ## ✨ Key Features
 
 ### 👨‍💻 For Job Seekers
-- ✅ **Categorized Domain Job Feeds** — Interactive domain filter pills (*Software Engineering*, *Business & MBA*, *Data Analytics*, *Data Science & AI*, *Cloud & DevOps*, *Finance & Accounting*, *Marketing & Sales*) to quickly discover listings tailored to specific fields.
-- ✅ **Resume Upload & Parsing** — Support for PDF/DOCX/TXT uploads with automatic extraction into structured JSON (skills, experience, education).
-- ✅ **Match Score & Gap Report** — Calculates fit score using **40% Keyword Match + 60% Dense Semantic Similarity** (`all-MiniLM-L6-v2` embeddings), detailing missing skills and match highlights.
-- ✅ **Grounded Resume Rewrites** — AI-powered experience rewriting suggestions that improve weak bullet points without fabricating experience (Gemini API).
-- ✅ **Context-Aware AI Chat Assistant** — Floating assistant widget that answers questions about job fit, resume recommendations, and application status.
-- ✅ **External Job Search** — Live search across Adzuna + JSearch APIs with cross-source deduplication.
+- ✔️ **Categorized Domain Job Feeds** — Interactive domain filter pills (*Software Engineering*, *Business & MBA*, *Data Analytics*, *Data Science & AI*, *Cloud & DevOps*, *Finance & Accounting*, *Marketing & Sales*) to quickly discover listings tailored to specific fields.
+- ✔️ **Resume Upload & Parsing** — Support for PDF/DOCX/TXT uploads with automatic extraction into structured JSON (skills, experience, education).
+- ✔️ **Match Score & Gap Report** — Calculates fit score using **40% Keyword Match + 60% Dense Semantic Similarity** (`all-MiniLM-L6-v2` embeddings), detailing missing skills and match highlights.
+- ✔️ **Grounded Resume Rewrites** — AI-powered experience rewriting suggestions that improve weak bullet points without fabricating experience (Gemini API).
+- ✔️ **Context-Aware AI Chat Assistant** — Floating assistant widget that answers questions about job fit, resume recommendations, and application status.
+- ✔️ **External Job Search** — Live search across Adzuna + JSearch APIs with cross-source deduplication.
 - 🧪 **Opt-In Auto-Apply** — Per-listing workflow that logs and tracks an automated application attempt against external listings. *Note: the current build simulates the headless-browser step client-side; the real automation engine is on the roadmap.*
-- ✅ **Account Recovery & Password Reset** — Forgot-password flow emails a time-limited reset link (30-min JWT token); demo mode surfaces the link in the UI.
+- ✔️ **Account Recovery & Password Reset** — Forgot-password flow emails a time-limited reset link (30-min JWT token); demo mode surfaces the link in the UI.
+- ✔️ **Email Verification on Registration** — New accounts require email verification before login; demo mode returns a `verify_token` in the registration response for immediate verification.
+- ✔️ **Rate Limiting** — In-memory rate limiter on auth endpoints (register: 5/60s, login: 10/60s, forgot-password: 3/60s) to mitigate brute-force attacks.
 
 ### 🏢 For Employers
-- ✅ **High-Volume Application Auto-Screening**:
+- ✔️ **High-Volume Application Auto-Screening**:
   - **Auto-Shortlist / Approve**: Candidates scoring ≥ threshold (e.g. 85%) are automatically moved to `"shortlisted"`.
   - **Auto-Reject**: Candidates scoring < threshold (e.g. 50%) are automatically set to `"rejected"`.
   - **Manual Review**: Borderline candidates remain in `"applied"` for recruiter review.
   - **Custom Threshold Controls**: Toggle screening on/off and configure percentage thresholds per job posting.
-- ✅ **Job Posting Management** — Full CRUD interface for creating, editing, and closing job postings with domain feed categorization.
-- ✅ **Bidirectional Candidate Ranking** — Applicants are automatically ranked per job posting based on true match fit.
-- ✅ **Candidate Pool Conversational Query** — Employers can query the AI chat assistant about their applicant pool to find candidates conversationally.
+- ✔️ **Job Posting Management** — Full CRUD interface for creating, editing, and closing job postings with domain feed categorization.
+- ✔️ **Bidirectional Candidate Ranking** — Applicants are automatically ranked per job posting based on true match fit.
+- ✔️ **Candidate Pool Conversational Query** — Employers can query the AI chat assistant about their applicant pool to find candidates conversationally.
 
 ### 🛡️ For Administrators (Admin Module)
-- ✅ **Centralized Admin Dashboard** — High-level system overview showing total users, jobs, applications, active users, average match rate, and system health.
-- ✅ **User Management** — Inspect and search user accounts, filter by role (Seeker, Employer, Admin), change roles, and oversee account status.
-- ✅ **Job Oversight** — View and manage all job postings across the system, including application counts and status toggles.
-- ✅ **System Activity Logs** — Audit log tracking logins, file uploads, applications, and other system-wide activities.
-- ✅ **Quick-Login Demo Access** — Red-themed custom sidebar and login shortcut to easily switch to the Administrator context.
+- ✔️ **Centralized Admin Dashboard** — High-level system overview showing total users, jobs, applications, active users, average match rate, and system health.
+- ✔️ **User Management** — Inspect and search user accounts, filter by role (Seeker, Employer, Admin), change roles, and oversee account status.
+- ✔️ **Job Oversight** — View and manage all job postings across the system, including application counts and status toggles.
+- ✔️ **System Activity Logs** — Audit log tracking logins, file uploads, applications, and other system-wide activities.
+- ✔️ **Quick-Login Demo Access** — Red-themed custom sidebar and login shortcut to easily switch to the Administrator context.
 
 ---
 
@@ -93,7 +95,7 @@ synapse/
 │   ├── pages/               # Seeker (Job Feed with Domain Filtering), Employer (Posting with Auto-Screening UI) & Admin Dashboard views
 │   └── types/               # TypeScript interfaces
 ├── supabase/
-│   └── migrations/          # SQL schema definitions
+│   └── functions/         # Edge functions (job-search: Adzuna + JSearch aggregation)
 ├── package.json
 └── README.md
 ```
@@ -192,12 +194,11 @@ The following are **not yet implemented** — see [Feature Status](#-feature-sta
 
 - 🤖 **Headless Playwright Automation** — Replace the simulated auto-apply step with real headless-browser execution for external site application filling (Celery worker + Playwright).
 - 🗄️ **External Job Aggregation Storage** — Persist and continuously refresh deduplicated Adzuna / JSearch listings in the database (currently searched live on request).
-- 🔔 **WebSocket Live Push** — Real-time WebSocket notifications for candidate application status updates.
 - 📅 **Interview Scheduler** — Built-in calendar scheduling for short-listed candidates.
 
 ---
 
-## ✅ Everything To Be Done
+## ✔️ Everything To Be Done
 
 Current status of all outstanding work, tracked here until done. Legend: `[ ]` = open, `[x]` = done.
 
@@ -207,8 +208,8 @@ Current status of all outstanding work, tracked here until done. Legend: `[ ]` =
 - [x] **Job alerts** — "notify me when a new job matches my resume" (subscribe to a domain feed / saved job; alert on new matching posting).
 - [ ] **Background / scheduled matching** — recompute match scores when a job posting or resume changes (currently computed on-demand per request).
 - [ ] **Employer ↔ seeker messaging** — the chat assistant is an AI bot; no direct two-way contact between employer and candidate.
-- [ ] **Email verification on registration** — accounts currently activate immediately without a confirm step.
 - [ ] **Real email delivery (SMTP)** — reset links and future status/job emails currently surface in the UI and server log (demo mode), not via an SMTP provider.
+- [x] **Email verification on registration** — new accounts are inactive until email verification; demo mode returns a `verify_token` for immediate verification.
 - [ ] **Real auto-apply** — replace the client-side simulation (`AutoApplyButton.tsx`) with a Celery + Playwright worker (FR-30).
 - [ ] **Persisted external-job aggregation** — store deduplicated Adzuna / JSearch listings in the database with a scheduled refresh (FR-31).
 - [x] **WebSocket live push** — push the in-app notifications above in real time instead of on page load (FR-32).
@@ -218,8 +219,8 @@ Current status of all outstanding work, tracked here until done. Legend: `[ ]` =
 ### 🔐 Security
 
 - [ ] **Enforce a real `SECRET_KEY`** — the config default `change-me-in-production` must be overridden via env on any real deployment (`.env.example` documents this).
-- [ ] **Rate limiting** — on auth endpoints (login / forgot-password / register) to slow brute force and email spam.
-- [ ] **Email verification** — bind account ownership to a verified address (also listed under Functionality).
+- [x] **Rate limiting** — in-memory rate limiter on auth endpoints (register 5/60s, login 10/60s, forgot-password 3/60s).
+- [x] **Email verification** — bind account ownership to a verified address (also listed under Functionality).
 
 ### 🧪 Testing & Deployment
 
