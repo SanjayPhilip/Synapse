@@ -55,6 +55,11 @@ class ProfileUpdate(BaseModel):
     avatar_url: Optional[str] = None
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class VerifyEmailRequest(BaseModel):
     token: str
 

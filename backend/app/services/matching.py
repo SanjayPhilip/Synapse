@@ -142,7 +142,7 @@ async def recompute_scores_for_resume(db, resume_id: UUID):
 
 
 async def recompute_scores_for_job(db, job_id: UUID):
-    from app.models import MatchScore, Resume, JobPosting
+    from app.models import MatchScore, Resume, JobPosting, Application
     from sqlalchemy import select
 
     job_result = await db.execute(select(JobPosting).where(JobPosting.id == job_id))
@@ -150,8 +150,15 @@ async def recompute_scores_for_job(db, job_id: UUID):
     if not job:
         return
 
+    apps_result = await db.execute(
+        select(Application.resume_id).where(Application.job_posting_id == job_id, Application.resume_id.isnot(None))
+    )
+    resume_ids = [r[0] for r in apps_result.all()]
+    if not resume_ids:
+        return
+
     resumes_result = await db.execute(
-        select(Resume).where(Resume.user_id == job.employer_id, Resume.is_current == True)
+        select(Resume).where(Resume.id.in_(resume_ids), Resume.is_current == True)
     )
     resumes = resumes_result.scalars().all()
 

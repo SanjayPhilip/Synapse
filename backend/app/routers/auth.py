@@ -5,7 +5,7 @@ from jose import jwt, JWTError
 from datetime import timedelta
 from app.database import get_db
 from app.models import Profile
-from app.schemas.auth import UserRegister, UserLogin, TokenResponse, ProfileResponse, ProfileUpdate, ForgotPasswordRequest, PasswordResetRequest, VerifyEmailRequest, VerifyEmailResponse
+from app.schemas.auth import UserRegister, UserLogin, TokenResponse, ProfileResponse, ProfileUpdate, ForgotPasswordRequest, PasswordResetRequest, VerifyEmailRequest, VerifyEmailResponse, PasswordChangeRequest
 from app.middleware.auth import hash_password, verify_password, create_access_token, get_current_user
 from app.services.email import send_verification_email, send_password_reset_email
 from app.middleware.rate_limit import rate_limiter
@@ -124,14 +124,14 @@ async def forgot_password(
     result = await db.execute(select(Profile).where(Profile.email == data.email))
     user = result.scalars().first()
     if not user:
-        return {"message": "If an account exists with that email, a reset link has been sent.", "reset_token": None}
+        return {"message": "No account found with that email.", "reset_token": None, "email_found": False}
 
     token = create_access_token(
         {"sub": str(user.id), "purpose": "password_reset"},
         expires_delta=timedelta(minutes=30),
     )
     send_password_reset_email(user.email, f"{get_settings().APP_BASE_URL}/reset-password?token={token}")
-    return {"message": "Reset link sent.", "reset_token": token}
+    return {"message": "Reset link sent.", "reset_token": token, "email_found": True}
 
 
 @router.post("/reset-password")
@@ -154,6 +154,21 @@ async def reset_password(data: PasswordResetRequest, db: AsyncSession = Depends(
     return {"message": "Password updated successfully. You can now log in with your new password."}
 
 
+@router.post("/change-password")
+async def change_password(
+    data: PasswordChangeRequest,
+    current_user: Profile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(rate_limiter(5, 60)),
+):
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    current_user.password_hash = hash_password(data.new_password)
+    await db.flush()
+    return {"message": "Password updated successfully"}
+
+
 @router.get("/me", response_model=ProfileResponse)
 async def get_me(current_user: Profile = Depends(get_current_user)):
     return current_user
@@ -169,3 +184,16 @@ async def update_me(
         setattr(current_user, key, value)
     await db.flush()
     return current_user
+
+
+@router.get("/users/{user_id}", response_model=ProfileResponse)
+async def get_user_profile(
+    user_id: str,
+    current_user: Profile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Profile).where(Profile.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user

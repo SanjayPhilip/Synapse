@@ -14,6 +14,15 @@ class ResumeCreate(BaseModel):
     is_current: bool = True
 
 
+class ResumeParseRequest(BaseModel):
+    raw_text: str
+
+
+class ResumeParseResponse(BaseModel):
+    parsed_data: dict
+    skills: list[str]
+
+
 class ResumeUpdate(BaseModel):
     file_name: Optional[str] = None
     parsed_data: Optional[dict] = None

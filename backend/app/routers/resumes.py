@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from app.database import get_db
 from app.models import Resume, Profile
-from app.schemas.resume import ResumeCreate, ResumeUpdate, ResumeResponse
+from app.schemas.resume import ResumeCreate, ResumeUpdate, ResumeResponse, ResumeParseRequest, ResumeParseResponse
 from app.middleware.auth import get_current_user
 from app.services.resume_parser import parse_resume_text, extract_skills_from_data
 from app.services.gemini import parse_resume_with_ai
@@ -65,6 +65,26 @@ async def get_resume(
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
     return resume
+
+
+@router.post("/parse", response_model=ResumeParseResponse)
+async def parse_resume_text_endpoint(
+    data: ResumeParseRequest,
+    current_user: Profile = Depends(get_current_user),
+):
+    raw_text = data.raw_text
+    parsed_data = parse_resume_text(raw_text)
+    skills = extract_skills_from_data(parsed_data)
+
+    try:
+        ai_parsed = await parse_resume_with_ai(raw_text)
+        if ai_parsed and ai_parsed.get("contact"):
+            parsed_data = ai_parsed
+            skills = ai_parsed.get("skills", skills)
+    except Exception:
+        pass
+
+    return ResumeParseResponse(parsed_data=parsed_data, skills=skills)
 
 
 @router.post("/upload", response_model=ResumeResponse)

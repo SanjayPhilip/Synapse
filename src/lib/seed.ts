@@ -102,14 +102,21 @@ const SAMPLE_JOBS: Array<{
   },
 ];
 
+let seedRan = false;
+
 export async function seedSampleJobs(): Promise<void> {
+  if (seedRan) return;
   try {
     const existing = await api.get<JobPosting[]>('/api/v1/jobs?status=active&limit=1');
-    if (existing.length > 0) return;
+    if (existing.length > 0) {
+      seedRan = true;
+      return;
+    }
 
     for (const job of SAMPLE_JOBS) {
       await api.post('/api/v1/jobs', job);
     }
+    seedRan = true;
   } catch {
     // seed failed silently
   }

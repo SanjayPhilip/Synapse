@@ -37,6 +37,9 @@ class JobPostingUpdate(BaseModel):
     auto_approve_threshold: Optional[int] = None
     auto_reject_threshold: Optional[int] = None
     status: Optional[str] = None
+    external_source: Optional[str] = None
+    external_id: Optional[str] = None
+    external_url: Optional[str] = None
 
 
 class JobPostingResponse(BaseModel):

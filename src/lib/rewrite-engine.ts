@@ -135,7 +135,7 @@ function rewriteExperienceDescription(
   const actionVerbs = ['Spearheaded', 'Architected', 'Developed', 'Implemented', 'Optimized', 'Led', 'Managed', 'Delivered'];
 
   const relevantSkills = matchedSkills.slice(0, 3);
-  const verb = actionVerbs[Math.floor(Math.random() * actionVerbs.length)];
+  const verb = actionVerbs[original.length % actionVerbs.length];
 
   // Restructure: lead with action verb, incorporate relevant skills
   const firstSentence = original.split('.')[0];

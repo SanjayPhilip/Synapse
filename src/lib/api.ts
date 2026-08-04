@@ -98,6 +98,10 @@ export async function computeMatchScore(data: { resume_id?: string; job_descript
   return api.post<MatchScore>('/api/v1/matching/compute', data);
 }
 
+export async function getGapExplanation(data: { resume_id?: string; job_posting_id?: string; job_description?: string; job_requirements?: string[] }): Promise<{ explanation: string }> {
+  return api.post<{ explanation: string }>('/api/v1/matching/gap-explanation', data);
+}
+
 // ============ SAVED JOBS ============
 export async function getSavedJobs(_seekerId: string): Promise<SavedJob[]> {
   return api.get<SavedJob[]>('/api/v1/saved-jobs');
@@ -206,8 +210,8 @@ export async function markAllNotificationsRead(): Promise<void> {
 }
 
 // ============ AUTH & RECOVERY ============
-export async function forgotPassword(email: string): Promise<{ message: string; reset_token: string | null }> {
-  return api.post<{ message: string; reset_token: string | null }>('/api/v1/auth/forgot-password', { email });
+export async function forgotPassword(email: string): Promise<{ message: string; reset_token: string | null; email_found: boolean }> {
+  return api.post<{ message: string; reset_token: string | null; email_found: boolean }>('/api/v1/auth/forgot-password', { email });
 }
 
 export async function verifyEmail(token: string): Promise<{ message: string }> {

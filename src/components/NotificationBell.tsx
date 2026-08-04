@@ -89,7 +89,7 @@ export function NotificationBell({ position = 'right', up = false }: { position?
     <div className="relative" ref={ref}>
       <button
         onClick={handleOpen}
-        className="relative rounded-lg p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+        className="relative rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
         aria-label="Notifications"
       >
         <Bell className="h-5 w-5" />
@@ -101,20 +101,20 @@ export function NotificationBell({ position = 'right', up = false }: { position?
       </button>
 
       {open && (
-        <div className={`absolute ${position === 'right' ? 'right-0' : 'left-0'} ${up ? 'bottom-11' : 'top-11'} z-50 w-80 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg`}>
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-4 py-3">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</h3>
+        <div className={`absolute ${position === 'right' ? 'right-0' : 'left-0'} ${up ? 'bottom-11' : 'top-11'} z-50 w-80 overflow-hidden rounded-xl border border-slate-800/50 bg-slate-950 shadow-lg shadow-black/50`}>
+          <div className="flex items-center justify-between border-b border-slate-800/50 px-4 py-3">
+            <h3 className="text-sm font-semibold text-white">Notifications</h3>
             {unread > 0 && (
-              <button onClick={handleMarkAll} className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">
+              <button onClick={handleMarkAll} className="flex items-center gap-1 text-xs font-medium text-cyan-400 hover:text-cyan-300">
                 <CheckCheck className="h-3.5 w-3.5" /> Mark all read
               </button>
             )}
           </div>
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
-              <p className="p-4 text-center text-sm text-slate-400">Loading...</p>
+              <p className="p-4 text-center text-sm text-slate-500">Loading...</p>
             ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 p-6 text-slate-400">
+              <div className="flex flex-col items-center gap-2 p-6 text-slate-500">
                 <BellOff className="h-6 w-6" />
                 <p className="text-sm">No notifications yet</p>
               </div>
@@ -123,14 +123,14 @@ export function NotificationBell({ position = 'right', up = false }: { position?
                 <button
                   key={n.id}
                   onClick={() => handleClickItem(n)}
-                  className={`flex w-full flex-col gap-0.5 border-b border-slate-50 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:border-slate-800/50 dark:hover:bg-slate-800/40 ${n.is_read ? 'opacity-60' : ''}`}
+                  className={`flex w-full flex-col gap-0.5 border-b border-slate-800/50 px-4 py-3 text-left transition-colors hover:bg-slate-800/40 ${n.is_read ? 'opacity-60' : ''}`}
                 >
                   <div className="flex items-center gap-2">
-                    {!n.is_read && <span className="h-2 w-2 flex-shrink-0 rounded-full bg-primary-500" />}
-                    <span className="text-sm font-medium text-slate-900 dark:text-white">{n.title}</span>
+                    {!n.is_read && <span className="h-2 w-2 flex-shrink-0 rounded-full bg-cyan-500" />}
+                    <span className="text-sm font-medium text-white">{n.title}</span>
                   </div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{n.message}</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                  <span className="text-xs text-slate-400 line-clamp-2">{n.message}</span>
+                  <span className="text-[10px] text-slate-500">
                     {new Date(n.created_at).toLocaleString()}
                   </span>
                 </button>

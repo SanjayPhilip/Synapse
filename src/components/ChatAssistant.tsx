@@ -61,21 +61,26 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
     const tempId = `temp-${Date.now()}`;
     setMessages(prev => [...prev, { id: tempId, role: 'user', content: userMessage }]);
 
-    await sendChatMessage(sessionId, userMessage).catch(() => {});
-
     const isRewriteRequest = detectRewriteIntent(userMessage);
 
     if (isRewriteRequest && activeRole === 'seeker') {
       await handleRewriteRequest(userMessage);
     } else {
-      const response = generateResponse(userMessage, activeModule, activeRole);
-      setMessages(prev => [...prev, {
-        id: `resp-${Date.now()}`,
-        role: 'assistant',
-        content: response.content,
-        module_routed: response.module,
-      }]);
-      await sendChatMessage(sessionId, response.content).catch(() => {});
+      try {
+        const apiResponse = await sendChatMessage(sessionId, userMessage);
+        setMessages(prev => [...prev, {
+          id: `resp-${Date.now()}`,
+          role: 'assistant',
+          content: apiResponse.content,
+          module_routed: apiResponse.module_routed,
+        }]);
+      } catch {
+        setMessages(prev => [...prev, {
+          id: `resp-${Date.now()}`,
+          role: 'assistant',
+          content: "I'm having trouble connecting to the AI service. Please try again in a moment.",
+        }]);
+      }
     }
 
     setLoading(false);
@@ -107,13 +112,11 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
         return;
       }
 
-      // Find the best-matching job, or pick the one mentioned by the user
       let targetJob: JobPosting | undefined;
       const mentionedJob = jobs.find(j => userMessage.toLowerCase().includes(j.title.toLowerCase().split(' ')[0]));
       if (mentionedJob) {
         targetJob = mentionedJob;
       } else {
-        // Score against all jobs and pick the highest
         let bestScore = -1;
         for (const job of jobs) {
           const score = computeMatchScore(resume.raw_text, resume.skills, job.description, job.requirements);
@@ -132,7 +135,6 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
 
       const score = computeMatchScore(resume.raw_text, resume.skills, targetJob.description, targetJob.requirements);
 
-      // Generate rewrite suggestions
       const drafts = generateRewriteSuggestions(
         resume.parsed_data,
         score.gap_report,
@@ -146,7 +148,6 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
         return;
       }
 
-      // Save suggestions to database
       const saved = await createRewriteSuggestions(resume.id, targetJob.id);
 
       const introMsg = `I analyzed your resume against **${targetJob.title}** (current match: ${score.overall_score.toFixed(0)}%). I found ${saved.length} area${saved.length > 1 ? 's' : ''} that could be improved. Here are my suggestions — you can accept, edit, or reject each one:`;
@@ -192,61 +193,6 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
     }));
   }
 
-  function generateResponse(query: string, module: string, role: string): { content: string; module: string } {
-    const q = query.toLowerCase();
-
-    if (role === 'seeker') {
-      if (q.includes('score') || q.includes('match')) {
-        return {
-          content: 'Your Match Score is calculated using a 40% keyword overlap and 60% semantic similarity. Head to the Match Score Analyzer to paste a job description and see your score with a detailed gap report showing missing skills and strengths.',
-          module: 'matching',
-        };
-      }
-      if (q.includes('resume') || q.includes('rewrite') || q.includes('improve')) {
-        return {
-          content: 'I can help you rewrite your resume right here! Just say something like "Rewrite my resume for a React developer job" and I\'ll analyze your resume against the best-matching job and generate tailored suggestions you can accept or reject. You can also use the Match Score Analyzer for a full before/after view.',
-          module: 'resume',
-        };
-      }
-      if (q.includes('job') || q.includes('search') || q.includes('find')) {
-        return {
-          content: 'Check out the Job Feed to see ranked job listings matched against your resume. Each listing shows a Match Score badge so you can prioritize high-fit opportunities. You can apply directly or save jobs for later.',
-          module: 'jobs',
-        };
-      }
-      if (q.includes('application') || q.includes('applied') || q.includes('status')) {
-        return {
-          content: `Your Application Tracker shows all jobs you've applied to with their current status. You can filter by application method (auto-applied vs manual) and track progress through the hiring pipeline.`,
-          module: 'applications',
-        };
-      }
-    } else {
-      if (q.includes('candidate') || q.includes('applicant') || q.includes('filter')) {
-        return {
-          content: 'Visit the Applicant Rankings page to see all candidates ranked by match score against your job posting. You can shortlist top candidates, view gap summaries, and track hiring progress. The same scoring engine is used in reverse — ensuring consistent evaluation.',
-          module: 'applicants',
-        };
-      }
-      if (q.includes('post') || q.includes('job') || q.includes('create')) {
-        return {
-          content: 'Create a new job posting from the My Postings section. Include a detailed description, requirements, and salary range to attract the best candidates. Your posting goes live immediately when you publish.',
-          module: 'postings',
-        };
-      }
-      if (q.includes('score') || q.includes('rank') || q.includes('match')) {
-        return {
-          content: 'Applicant rankings use the same 40/60 keyword + semantic scoring as the seeker side. Each candidate gets a 0-100 score with a gap report showing matched and missing skills. This ensures transparent, explainable hiring decisions.',
-          module: 'matching',
-        };
-      }
-    }
-
-    return {
-      content: `I'm here to help with ${role === 'employer' ? 'your hiring needs' : 'your job search'}. You can ask me about match scores, ${role === 'employer' ? 'candidate rankings, job postings' : 'resume optimization, job search, or application tracking'}. What would you like to explore?`,
-      module: 'general',
-    };
-  }
-
   const quickActions = activeRole === 'employer'
     ? ['Show top candidates', 'Explain match scores', 'How to post a job']
     : ['Rewrite my resume for a job', 'Why is my score low?', 'Find relevant jobs'];
@@ -256,67 +202,66 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-all hover:bg-primary-700 hover:scale-105"
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40 hover:scale-105"
         >
           <MessageSquare className="h-6 w-6" />
-          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-500 text-xs font-bold text-white">
+          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-violet-500 text-xs font-bold text-white">
             <Sparkles className="h-3 w-3" />
           </span>
         </button>
       )}
 
       {open && (
-        <div className="fixed bottom-6 right-6 z-40 flex w-[400px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-slide-up" style={{ height: 560 }}>
+        <div className="fixed bottom-6 right-6 z-40 flex w-[400px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-slate-800/50 bg-slate-950 shadow-2xl shadow-black/50 animate-slide-up" style={{ height: 560 }}>
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-200 bg-primary-600 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-slate-800/50 bg-slate-900/80 px-4 py-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-                <Brain className="h-4 w-4 text-white" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/20 border border-cyan-500/30">
+                <Brain className="h-4 w-4 text-cyan-400" />
               </div>
               <div>
                 <div className="text-sm font-semibold text-white">Synapse AI</div>
-                <div className="text-xs text-primary-100 capitalize">{activeRole} mode</div>
+                <div className="text-xs text-slate-400 capitalize">{activeRole} mode</div>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="text-white/80 hover:text-white">
+            <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-white">
               <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto bg-slate-50 p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto bg-slate-950/50 p-4 space-y-3">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-sm ${
-                  msg.role === 'user' ? 'bg-primary-600 text-white' : 'bg-white text-slate-700 border border-slate-200'
+                  msg.role === 'user' ? 'bg-cyan-600 text-white' : 'bg-slate-800/50 text-slate-300 border border-slate-700/50'
                 }`}>
                   <div className="whitespace-pre-wrap">{msg.content}</div>
 
-                  {/* Inline rewrite suggestions */}
                   {msg.suggestions && msg.suggestions.length > 0 && (
                     <div className="mt-3 space-y-2.5">
                       {msg.suggestions.map((sug) => (
                         <div key={sug.id} className={`rounded-lg border p-2.5 text-xs ${
-                          sug.status === 'accepted' ? 'border-success-200 bg-success-50' :
-                          sug.status === 'rejected' ? 'border-slate-200 bg-slate-50 opacity-60' :
-                          'border-slate-200 bg-slate-50'
+                          sug.status === 'accepted' ? 'border-emerald-500/30 bg-emerald-500/10' :
+                          sug.status === 'rejected' ? 'border-slate-700/50 bg-slate-800/30 opacity-60' :
+                          'border-slate-700/50 bg-slate-800/30'
                         }`}>
                           <div className="flex items-center justify-between mb-1.5">
-                            <span className="badge bg-primary-100 text-primary-700 capitalize">{sug.section_type}</span>
+                            <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-[10px] font-medium text-cyan-400 border border-cyan-500/30 capitalize">{sug.section_type}</span>
                             {sug.status !== 'pending' && (
-                              <span className={`badge capitalize ${
-                                sug.status === 'accepted' ? 'bg-success-100 text-success-700' : 'bg-slate-100 text-slate-500'
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${
+                                sug.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700/50 text-slate-400 border border-slate-600/50'
                               }`}>{sug.status}</span>
                             )}
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <div className="text-[10px] font-medium text-slate-400 mb-0.5">Original</div>
-                              <div className="text-slate-500 line-clamp-3">{sug.original_text}</div>
+                              <div className="text-[10px] font-medium text-slate-500 mb-0.5">Original</div>
+                              <div className="text-slate-400 line-clamp-3">{sug.original_text}</div>
                             </div>
                             <div>
-                              <div className="text-[10px] font-medium text-accent-600 mb-0.5">Suggested</div>
-                              <div className="text-slate-700 line-clamp-3">{sug.suggested_text}</div>
+                              <div className="text-[10px] font-medium text-cyan-400 mb-0.5">Suggested</div>
+                              <div className="text-slate-200 line-clamp-3">{sug.suggested_text}</div>
                             </div>
                           </div>
                           <div className="mt-1.5 text-[10px] text-slate-500 italic">{sug.reasoning}</div>
@@ -324,13 +269,13 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
                             <div className="mt-2 flex gap-1.5">
                               <button
                                 onClick={() => handleAcceptSuggestion(msg.id, sug)}
-                                className="flex items-center gap-1 rounded-md bg-success-600 px-2 py-1 text-[10px] font-medium text-white hover:bg-success-700"
+                                className="flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-medium text-white hover:bg-emerald-500"
                               >
                                 <Check className="h-2.5 w-2.5" /> Accept
                               </button>
                               <button
                                 onClick={() => handleRejectSuggestion(msg.id, sug)}
-                                className="flex items-center gap-1 rounded-md bg-slate-200 px-2 py-1 text-[10px] font-medium text-slate-600 hover:bg-slate-300"
+                                className="flex items-center gap-1 rounded-md bg-slate-700 px-2 py-1 text-[10px] font-medium text-slate-300 hover:bg-slate-600"
                               >
                                 <X className="h-2.5 w-2.5" /> Reject
                               </button>
@@ -342,7 +287,7 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
                   )}
 
                   {msg.module_routed && msg.role === 'assistant' && (
-                    <div className="mt-1.5 flex items-center gap-1 text-xs text-slate-400">
+                    <div className="mt-1.5 flex items-center gap-1 text-xs text-slate-500">
                       <Sparkles className="h-3 w-3" /> Routed to: {msg.module_routed}
                     </div>
                   )}
@@ -351,11 +296,11 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="rounded-2xl bg-white border border-slate-200 px-3.5 py-2.5">
+                <div className="rounded-2xl bg-slate-800/50 border border-slate-700/50 px-3.5 py-2.5">
                   <div className="flex gap-1">
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-300" style={{ animationDelay: '0ms' }} />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-300" style={{ animationDelay: '150ms' }} />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-300" style={{ animationDelay: '300ms' }} />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '0ms' }} />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '150ms' }} />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               </div>
@@ -365,13 +310,13 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
 
           {/* Quick actions */}
           {messages.length <= 1 && (
-            <div className="border-t border-slate-200 bg-white px-3 py-2">
+            <div className="border-t border-slate-800/50 bg-slate-900/80 px-3 py-2">
               <div className="flex flex-wrap gap-1.5">
                 {quickActions.map((action) => (
                   <button
                     key={action}
                     onClick={() => { setInput(action); }}
-                    className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+                    className="rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-300 hover:bg-slate-700/50 hover:text-white"
                   >
                     {action}
                   </button>
@@ -381,20 +326,20 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
           )}
 
           {/* Input */}
-          <div className="border-t border-slate-200 bg-white p-3">
+          <div className="border-t border-slate-800/50 bg-slate-900/80 p-3">
             <div className="flex items-center gap-2">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                 placeholder="Ask me anything..."
-                className="flex-1 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                className="flex-1 rounded-full border border-slate-700/50 bg-slate-800/50 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 disabled={loading}
               />
               <button
                 onClick={sendMessage}
                 disabled={loading || !input.trim()}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
               </button>

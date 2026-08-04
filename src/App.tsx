@@ -1,10 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ToastProvider } from '@/context/ToastContext';
 import { AppShell } from '@/components/AppShell';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
+import { VerifyEmailPage } from '@/pages/VerifyEmailPage';
 import { SeekerDashboard } from '@/pages/seeker/SeekerDashboard';
 import { ResumePage } from '@/pages/seeker/ResumePage';
 import { MatchScorePage } from '@/pages/seeker/MatchScorePage';
@@ -17,6 +20,7 @@ import { ApplicantsPage } from '@/pages/employer/ApplicantsPage';
 import { AnalyticsPage } from '@/pages/employer/AnalyticsPage';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { NotFoundPage } from '@/pages/NotFoundPage';
 import { Spinner } from '@/components/ui';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -69,6 +73,7 @@ function AppRoutes() {
       <Route path="/register/seeker" element={<RegisterPage role="seeker" />} />
       <Route path="/register/employer" element={<RegisterPage role="employer" />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
 
       <Route path="/app" element={
         <ProtectedRoute>
@@ -163,7 +168,7 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
@@ -172,7 +177,11 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <AppRoutes />
+        <ErrorBoundary>
+          <ToastProvider>
+            <AppRoutes />
+          </ToastProvider>
+        </ErrorBoundary>
       </BrowserRouter>
     </AuthProvider>
   );

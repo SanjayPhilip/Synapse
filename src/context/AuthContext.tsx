@@ -17,7 +17,15 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeRole, setActiveRole] = useState<UserRole>('seeker');
+  const [activeRole, setActiveRoleState] = useState<UserRole>(() => {
+    const saved = localStorage.getItem('synapse_active_role');
+    return (saved === 'seeker' || saved === 'employer') ? saved : 'seeker';
+  });
+
+  function setActiveRole(role: UserRole) {
+    setActiveRoleState(role);
+    localStorage.setItem('synapse_active_role', role);
+  }
 
   useEffect(() => {
     const token = localStorage.getItem('synapse_token');
@@ -32,7 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const data = await api.get<Profile>('/api/v1/auth/me');
       setProfile(data);
-      setActiveRole(data.role);
+      const saved = localStorage.getItem('synapse_active_role');
+      if (!saved) {
+        setActiveRole(data.role as UserRole);
+      }
     } catch {
       localStorage.removeItem('synapse_token');
       localStorage.removeItem('synapse_user');

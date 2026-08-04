@@ -68,6 +68,18 @@ async def match_resume_to_job(
     db.add(ms)
     await db.flush()
     await db.refresh(ms)
+
+    if ms.overall_score >= 80:
+        from app.routers.applications import _notify
+        await _notify(
+            db,
+            current_user.id,
+            "High match found",
+            f"You match \"{job.title}\" at {ms.overall_score:.0f}%. Review the opportunity.",
+            "match",
+            link="/app/jobs",
+        )
+
     return ms
 
 
@@ -202,3 +214,36 @@ async def get_ranked_opportunities(
 
     opportunities.sort(key=lambda x: x["overall_score"], reverse=True)
     return opportunities
+
+
+@router.post("/gap-explanation")
+async def get_gap_explanation(
+    data: MatchRequest,
+    current_user: Profile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    resume_text = ""
+    resume_skills = []
+    job_desc = data.job_description or ""
+    job_reqs = data.job_requirements
+
+    if data.resume_id:
+        resume_result = await db.execute(
+            select(Resume).where(Resume.id == data.resume_id, Resume.user_id == current_user.id)
+        )
+        resume = resume_result.scalar_one_or_none()
+        if resume:
+            resume_text = resume.raw_text
+            resume_skills = resume.skills or []
+
+    if data.job_posting_id:
+        job_result = await db.execute(select(JobPosting).where(JobPosting.id == data.job_posting_id))
+        job = job_result.scalar_one_or_none()
+        if job:
+            job_desc = job.description
+            job_reqs = job.requirements or []
+
+    scores = compute_match(resume_text, resume_skills, job_desc, job_reqs)
+    resume_data = {"summary": resume_text[:500], "skills": resume_skills} if resume_text else {}
+    explanation = await generate_gap_explanation(resume_data, job_desc, scores["gap_report"])
+    return {"explanation": explanation}
