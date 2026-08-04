@@ -16,6 +16,13 @@ class Settings(BaseSettings):
 
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 1025
+    SMTP_USER: str = ""
+    SMTP_PASS: str = ""
+    SMTP_FROM: str = "Synapse <noreply@synapse.local>"
+    APP_BASE_URL: str = "http://localhost:5173"
+
     CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://localhost:5174",

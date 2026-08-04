@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import Profile
 from app.schemas.auth import UserRegister, UserLogin, TokenResponse, ProfileResponse, ProfileUpdate, ForgotPasswordRequest, PasswordResetRequest, VerifyEmailRequest, VerifyEmailResponse
 from app.middleware.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.services.email import send_verification_email, send_password_reset_email
 from app.middleware.rate_limit import rate_limiter
 from app.config import get_settings
 
@@ -110,7 +111,7 @@ async def verify_email(
 
     user.is_verified = True
     await db.flush()
-    print(f"[demo] Email verified for {user.email}")
+    send_verification_email(user.email, f"{get_settings().APP_BASE_URL}/verify-email?token={data.token}")
     return VerifyEmailResponse(message="Email verified successfully. You can now log in.")
 
 
@@ -129,8 +130,8 @@ async def forgot_password(
         {"sub": str(user.id), "purpose": "password_reset"},
         expires_delta=timedelta(minutes=30),
     )
-    print(f"[demo] Password reset link for {data.email}: /reset-password?token={token}")
-    return {"message": "Reset link generated (valid 30 minutes).", "reset_token": token}
+    send_password_reset_email(user.email, f"{get_settings().APP_BASE_URL}/reset-password?token={token}")
+    return {"message": "Reset link sent.", "reset_token": token}
 
 
 @router.post("/reset-password")
