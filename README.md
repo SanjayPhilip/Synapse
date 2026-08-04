@@ -200,6 +200,27 @@ docker compose down
 docker compose down -v
 ```
 
+### 4. Database Migrations (Alembic)
+
+For local development, `python -m app.init_db` creates tables directly. For production and version-controlled schema changes, use Alembic migrations:
+
+```bash
+cd backend
+
+# Apply all pending migrations
+python -m app.migrate
+
+# Or via npm from project root:
+npm run migrate
+```
+
+Generate a new migration after model changes:
+```bash
+cd backend
+alembic revision --autogenerate -m "description"
+python -m app.migrate
+```
+
 ### 5. Testing
 
 ```bash
