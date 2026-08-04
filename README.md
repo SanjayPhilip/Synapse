@@ -1,7 +1,7 @@
 # ⚡ SYNAPSE — AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform
 
 **Team No. 05** — *Sanjay Philip · Akshay K R · Devika S*
-**Version**: 2.3.1 (Rate Limiting & Email Verification)
+**Version**: 2.4.0 (Migrations, SMTP, Scheduler, Notifications & UI Polish)
 
 ---
 
@@ -39,7 +39,14 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 - 🧪 **Opt-In Auto-Apply** — Per-listing workflow that logs and tracks an automated application attempt against external listings. *Note: the current build simulates the headless-browser step client-side; the real automation engine is on the roadmap.*
 - ✔️ **Account Recovery & Password Reset** — Forgot-password flow emails a time-limited reset link (30-min JWT token); demo mode surfaces the link in the UI.
 - ✔️ **Email Verification on Registration** — New accounts require email verification before login; demo mode returns a `verify_token` in the registration response for immediate verification.
-- ✔️ **Rate Limiting** — In-memory rate limiter on auth endpoints (register: 5/60s, login: 10/60s, forgot-password: 3/60s) to mitigate brute-force attacks.
+- ✔️ **Rate Limiting** — In-memory rate limiter on auth endpoints (register: 5/60s, login: 10/60s, forgot-password: 3/60s, change-password: 5/60s) to mitigate brute-force attacks.
+- ✔️ **Password Change** — Authenticated `POST /auth/change-password` verifying the current password before hashing the new one.
+- ✔️ **AI Paste Parser** — `POST /resumes/parse` turns raw pasted resume text into structured skills/experience/education (regex + Gemini fallback).
+- ✔️ **Drag-Drop Upload** — Resume page accepts drag-and-drop PDF/DOCX/TXT files with client-side validation.
+- ✔️ **Remember Me** — Login persists the email for convenience; password strength meter + terms checkbox on registration.
+- ✔️ **Resume Version Restore** — Restore any past resume version; new versions are created on each upload.
+- ✔️ **Toast Notifications** — Global toast system (`ToastContext`) replacing `alert()` across resume/job-feed flows.
+- ✔️ **Topbar Search** — Seeker header search filters the job feed via `/app/jobs?q=...`.
 
 ### 🏢 For Employers
 - ✔️ **High-Volume Application Auto-Screening**:
@@ -291,7 +298,7 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 - ✅ **Test suite (NFR-08)** — pytest harness: auth, reset-token, auto-screening, and match-score smoke tests.
 - ✅ **Docker (NFR-09)** — `Dockerfile` + `docker-compose` for backend, frontend, and Postgres.
 - ✅ **CI pipeline** — lint + typecheck + test on push (GitHub Actions).
-- 🔲 **Prod DB migrations** — schema management for PostgreSQL (currently `init_db` creates tables directly).
+- ✅ **Prod DB migrations** — Alembic (`alembic.ini` + `backend/alembic/versions/`) with a `python -m app.migrate` runner (`npm run migrate`). `init_db` remains for zero-config local dev.
 
 ### 📄 Docs
 

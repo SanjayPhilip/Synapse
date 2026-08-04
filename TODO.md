@@ -343,7 +343,7 @@ This file is self-contained; start with PHASE 1.
 
 - [x] `Synapse_Implementation_Documentation.docx` regenerated — 13 tables, real API list
 - [x] `Synapse_Report.docx` regenerated — v3.0, Gemini, SQLite/PostgreSQL note
-- [ ] README with setup, env vars, demo accounts
+- [x] README with setup, env vars, demo accounts (updated v2.4.0: Alembic, SMTP, scheduler, toasts, new features)
 - [ ] API reference (auto-generated from FastAPI)
 - [ ] Deploy runbook
 
