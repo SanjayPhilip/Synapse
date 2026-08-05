@@ -21,6 +21,7 @@ import { AnalyticsPage } from '@/pages/employer/AnalyticsPage';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { ServerErrorPage } from '@/pages/ServerErrorPage';
 import { Spinner } from '@/components/ui';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -168,6 +169,7 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      <Route path="/500" element={<ServerErrorPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

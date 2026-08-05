@@ -194,7 +194,7 @@ This file is self-contained; start with PHASE 1.
 - [ ] Skeleton loading cards (dashboards, feed, lists)
 - [ ] Progress bar for uploads (exists — wire into ResumePage upload)
 - [ ] Error boundary retry button (exists in ErrorBoundary — add retry)
-- [ ] 500 error page
+- [x] 500 error page
 - [ ] Toast variants: info + custom duration (exists — extend)
 - [ ] Confirm-action modal variant (exists as Modal — add confirm/danger style)
 - [ ] Form modal variant

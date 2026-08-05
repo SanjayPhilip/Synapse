@@ -1,3 +1,4 @@
+import copy
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Boolean, Integer, Numeric, Text, ForeignKey, DateTime, Index, JSON
@@ -23,6 +24,21 @@ class GUID(TypeDecorator):
         return uuid.UUID(str(value))
 
 
+DEFAULT_NOTIFICATION_PREFS: dict = {
+    "application_received": {"email": True, "in_app": True},
+    "application_status_changed": {"email": True, "in_app": True},
+    "auto_screened": {"email": True, "in_app": True},
+    "auto_apply_complete": {"email": True, "in_app": True},
+    "high_match": {"email": True, "in_app": True},
+    "job_alert": {"email": True, "in_app": True},
+}
+
+
+def default_notification_prefs() -> dict:
+    """Fresh copy per row so the mutable default is never shared across instances."""
+    return copy.deepcopy(DEFAULT_NOTIFICATION_PREFS)
+
+
 class Profile(Base):
     __tablename__ = "profiles"
 
@@ -32,6 +48,15 @@ class Profile(Base):
     role = Column(String, nullable=False, default="seeker")
     company_name = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
+    bio = Column(Text, nullable=True)
+    headline = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    linkedin = Column(String, nullable=True)
+    website = Column(String, nullable=True)
+    theme = Column(String, nullable=False, default="dark")
+    locale = Column(String, nullable=False, default="en")
+    notification_prefs = Column(JSON, nullable=False, default=default_notification_prefs)
     password_hash = Column(String, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
     is_verified = Column(Boolean, nullable=False, default=True)
