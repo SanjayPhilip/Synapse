@@ -139,21 +139,21 @@ This file is self-contained; start with PHASE 1.
 ## PHASE 2 — Settings, Account & Security (MEDIUM)
 
 ### 6. Settings — Profile
-- [ ] Avatar upload (backend file storage + endpoint, frontend crop/upload)
-- [ ] Bio / headline fields
-- [ ] Phone, location, linkedin, website fields
+- [x] Avatar upload (backend file storage + endpoint, frontend crop/upload)
+- [x] Bio / headline fields
+- [x] Phone, location, linkedin, website fields
 
 ### 7. Settings — Security
 - [x] Password change FORM in Settings UI (backend endpoint exists)
-- [ ] Email change (new email → re-verify before switch)
-- [ ] Active sessions list + revoke-session (session tokens table)
-- [ ] Delete-account danger zone (confirm modal, soft-delete + admin flag)
+- [x] Email change (new email → re-verify before switch)
+- [x] Active sessions list + revoke-session (session tokens table)
+- [x] Delete-account danger zone (confirm modal, soft-delete + admin flag)
 
 ### 8. Settings — Appearance & Data
 - [ ] Theme toggle in Settings (exists — link to persisted value)
 - [ ] Language/locale select
 - [ ] Export my data (resume + applications JSON)
-- [ ] Notification preferences (which events email vs in-app)
+- [x] Notification preferences (which events email vs in-app)
 
 ---
 
