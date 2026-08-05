@@ -51,6 +51,20 @@ def send_password_reset_email(to: str, reset_url: str):
     )
 
 
+def send_email_change_verification(new_email: str, verify_url: str):
+    _send_email(
+        to=new_email,
+        subject="Confirm your new Synapse email",
+        html=f"""
+        <h1>Confirm your new email</h1>
+        <p>Click the link below to confirm this email address for your account:</p>
+        <p><a href="{verify_url}">{verify_url}</a></p>
+        <p>This link expires in 30 minutes.</p>
+        """,
+        text=f"Confirm your new Synapse email: {verify_url}\nThis link expires in 30 minutes.",
+    )
+
+
 def send_application_status_email(to: str, job_title: str, status: str, notes: str | None = None):
     _send_email(
         to=to,

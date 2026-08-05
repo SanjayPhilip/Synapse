@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt, JWTError
-from datetime import timedelta
+from datetime import datetime, timedelta
 from app.database import get_db
-from app.models import Profile
+from app.models import Profile, SessionToken
 from app.schemas.auth import UserRegister, UserLogin, TokenResponse, ProfileResponse, ProfileUpdate, ForgotPasswordRequest, PasswordResetRequest, VerifyEmailRequest, VerifyEmailResponse, PasswordChangeRequest, ResendVerificationRequest
-from app.middleware.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.middleware.auth import hash_password, verify_password, create_access_token, get_current_user, hash_token
 from app.services.email import send_verification_email, send_password_reset_email
 from app.middleware.rate_limit import rate_limiter
 from app.config import get_settings
@@ -14,9 +14,34 @@ from app.config import get_settings
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
+def create_session_token(
+    db: AsyncSession,
+    user: Profile,
+    access_token: str,
+    request: Request,
+) -> SessionToken:
+    """Persist a SessionToken row for a freshly issued access token.
+
+    The raw token is stored hashed (never plaintext); user-agent and IP are
+    captured for the security sessions dashboard. Called on register and login.
+    """
+    session = SessionToken(
+        user_id=user.id,
+        token_hash=hash_token(access_token),
+        user_agent=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None,
+        created_at=datetime.utcnow(),
+        last_used_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(minutes=get_settings().ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    db.add(session)
+    return session
+
+
 @router.post("/register", response_model=TokenResponse)
 async def register(
     data: UserRegister,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     _: None = Depends(rate_limiter(5, 60)),
 ):
@@ -42,6 +67,7 @@ async def register(
     send_verification_email(user.email, f"{get_settings().APP_BASE_URL}/verify-email?token={verify_token}")
 
     token = create_access_token({"sub": str(user.id), "role": user.role})
+    create_session_token(db, user, token, request)
     return TokenResponse(
         access_token=token,
         user={
@@ -59,6 +85,7 @@ async def register(
 @router.post("/login", response_model=TokenResponse)
 async def login(
     data: UserLogin,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     _: None = Depends(rate_limiter(10, 60)),
 ):
@@ -67,6 +94,9 @@ async def login(
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
+    if not user.is_active or user.is_deleted:
+        raise HTTPException(status_code=403, detail="Account has been deactivated")
+
     if not user.is_verified:
         raise HTTPException(
             status_code=403,
@@ -74,6 +104,7 @@ async def login(
         )
 
     token = create_access_token({"sub": str(user.id), "role": user.role})
+    create_session_token(db, user, token, request)
     return TokenResponse(
         access_token=token,
         user={

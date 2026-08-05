@@ -59,11 +59,13 @@ class Profile(Base):
     notification_prefs = Column(JSON, nullable=False, default=default_notification_prefs)
     password_hash = Column(String, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
+    is_deleted = Column(Boolean, nullable=False, default=False)
     is_verified = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     resumes = relationship("Resume", back_populates="user", cascade="all, delete-orphan")
+    session_tokens = relationship("SessionToken", back_populates="user", cascade="all, delete-orphan")
     job_postings = relationship("JobPosting", back_populates="employer", cascade="all, delete-orphan")
     applications = relationship("Application", back_populates="seeker", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
@@ -71,6 +73,22 @@ class Profile(Base):
     auto_apply_logs = relationship("AutoApplyLog", back_populates="seeker", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     job_alerts = relationship("JobAlert", back_populates="seeker", cascade="all, delete-orphan")
+
+
+class SessionToken(Base):
+    __tablename__ = "session_tokens"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String, nullable=False)
+    user_agent = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    last_used_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+
+    user = relationship("Profile", back_populates="session_tokens")
 
 
 class Resume(Base):

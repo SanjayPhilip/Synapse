@@ -1,7 +1,7 @@
 # ⚡ SYNAPSE — AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform
 
 **Team No. 05** — *Sanjay Philip · Akshay K R · Devika S*
-**Version**: 2.4.0 (Migrations, SMTP, Scheduler, Notifications & UI Polish)
+**Version**: 2.5.0 (Job Feed UX, Settings Security, 500 Page, API Docs)
 
 ---
 
@@ -36,6 +36,9 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 - ✔️ **Grounded Resume Rewrites** — AI-powered experience rewriting suggestions that improve weak bullet points without fabricating experience (Gemini API).
 - ✔️ **Context-Aware AI Chat Assistant** — Floating assistant widget that answers questions about job fit, resume recommendations, and application status.
 - ✔️ **External Job Search** — Live search across Adzuna + JSearch APIs with cross-source deduplication, DB-as-cache (serves cached results with a `stale` flag when providers are unreachable), and save/apply flows that materialize external listings into tracked Saved Jobs / the Auto-Apply queue.
+- ✔️ **Job Feed Upgrades** — Sort jobs by match score, newest, or salary; filter by location; view full job details in a modal before applying.
+- ✔️ **500 Error Page** — Dedicated `/500` error page with retry and home navigation.
+- ✔️ **Settings Security** — Password change form in Settings with current-password verification and confirmation.
 - 🧪 **Opt-In Auto-Apply** — Per-listing workflow that queues an automated application attempt against external listings (`auto_apply_logs` pending queue). *Note: the current build queues the attempt and redirects to the source site; the headless-browser automation engine (worker) is item 1 on the roadmap.*
 - ✔️ **Account Recovery & Password Reset** — Forgot-password flow emails a time-limited reset link (30-min JWT token); demo mode surfaces the link in the UI.
 - ✔️ **Email Verification on Registration** — New accounts require email verification before login; verification link is emailed (real SMTP when configured, else demo) and can be re-sent via `POST /auth/resend-verification`.
@@ -79,7 +82,7 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 | **Database & ORM** | PostgreSQL (AsyncPG / SQLAlchemy 2.0) for production · SQLite for local dev |
 | **Matching & ML** | `sentence-transformers` (`all-MiniLM-L6-v2`) for dense semantic embeddings + token keyword scoring |
 | **AI Services** | Google Gemini API (resume rewrites & AI assistant query routing) |
-| **External Job Feeds** | Adzuna API + JSearch (RapidAPI) via Supabase edge function with in-memory deduplication |
+| **External Job Feeds** | Adzuna API + JSearch (RapidAPI) via internal `app/services/external_jobs.py` with DB caching and rate limiting |
 | **Auth & Security** | JWT (HS256 tokens) + Role-Based Access Control (Admin, Employer, Seeker) + Password Hashing (Bcrypt) + CORS (supports Vite ports `5173`/`5174`) |
 
 ---
@@ -91,21 +94,21 @@ synapse/
 ├── backend/
 │   ├── app/
 │   │   ├── models/          # SQLAlchemy ORM schemas (Users, Resumes, Jobs with Auto-Screening & Domain Feeds)
-│   │   ├── routers/         # REST API routes (auth, admin, resumes, jobs, applications, matching, chat, external-jobs, auto-apply)
-│   │   ├── services/        # ML matching engine, Gemini AI & resume parsing
+│   │   ├── routers/         # REST API routes (auth, admin, resumes, jobs, applications, matching, chat, external-jobs, auto-apply, job-alerts)
+│   │   ├── services/        # ML matching engine, Gemini AI & resume parsing, external job fetchers, auto-apply worker, job alert scheduler
+│   │   ├── workers/         # Background task runners (auto-apply)
 │   │   ├── main.py          # FastAPI application entrypoint
 │   │   ├── config.py        # Environment settings & CORS config
 │   │   ├── init_db.py       # Database schema initialization script
 │   │   └── seed.py          # Database seeder script with pre-categorized domain listings
+│   ├── alembic/             # Database migrations
 │   └── requirements.txt
 ├── src/
 │   ├── components/          # Reusable UI components, Sidebar/AppShell, AutoApply & Chat Assistant
 │   ├── context/             # AuthContext & global state
 │   ├── lib/                 # API client & scoring utilities
-│   ├── pages/               # Seeker (Job Feed with Domain Filtering), Employer (Posting with Auto-Screening UI) & Admin Dashboard views
+│   ├── pages/               # Seeker (Job Feed with Domain Filtering, Sort, Location Filter, Detail Modal), Employer (Posting with Auto-Screening UI) & Admin Dashboard views
 │   └── types/               # TypeScript interfaces
-├── supabase/
-│   └── functions/         # Edge functions (job-search: Adzuna + JSearch aggregation)
 ├── package.json
 └── README.md
 ```
@@ -143,7 +146,7 @@ SECRET_KEY=your_secret_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-> 💡 The backend starts without the optional keys — matching, rewrites, and chat need `GEMINI_API_KEY`. External job search runs from the Supabase edge function (`supabase/functions/job-search`) using Adzuna/JSearch secrets configured in Supabase.
+> 💡 The backend starts without the optional keys — matching, rewrites, and chat need `GEMINI_API_KEY`. External job search uses Adzuna/JSearch keys (`ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `JSEARCH_API_KEY`) and falls back to cached DB results when providers are unreachable.
 
 **Frontend** — create `.env` in project root:
 
@@ -284,8 +287,8 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 - 🔲 **Employer ↔ seeker messaging** — the chat assistant is an AI bot; no direct two-way contact between employer and candidate.
 - ✅ **Real email delivery (SMTP)** — verification and password reset emails are sent via SMTP when `SMTP_HOST` is configured; otherwise they fall back to console logging for demo mode.
 - ✅ **Email verification on registration** — new accounts are inactive until email verification; demo mode returns a `verify_token` for immediate verification.
-- 🔲 **Real auto-apply** — replace the client-side simulation (`AutoApplyButton.tsx`) with a Celery + Playwright worker (FR-30).
-- 🔲 **Persisted external-job aggregation** — store deduplicated Adzuna / JSearch listings in the database with a scheduled refresh (FR-31).
+- ✅ **Real auto-apply** — headless Playwright worker queues applications against external listings with retry, screenshots, and concurrency control.
+- ✅ **Persisted external-job aggregation** — deduplicated Adzuna / JSearch listings are stored in the database with DB-as-cache, rate limiting, and stale-fallback serving.
 - ✅ **WebSocket live push** — push the in-app notifications above in real time instead of on page load (FR-32).
 - 🔲 **Interview scheduling** — calendar flow for shortlisted candidates (FR-33).
 - 🔲 **Mobile app** — React Native companion (FR-34).
@@ -306,6 +309,8 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 ### 📄 Docs
 
 - ✅ **Test / deploy instructions** — added `Testing` and `Deployment` sections to README.
+- ✅ **API reference** — FastAPI auto-generated OpenAPI docs available at `/docs` when running the backend.
+- 🔲 **Deploy runbook** — step-by-step production deployment guide (see `docs/DEPLOY.md` — pending).
 
 ---
 
