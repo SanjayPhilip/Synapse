@@ -206,6 +206,9 @@ class JobAlert(Base):
     category = Column(String, nullable=True)
     location = Column(String, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
+    frequency = Column(String, nullable=False, default="daily")
+    email_enabled = Column(Boolean, nullable=False, default=True)
+    last_checked = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     seeker = relationship("Profile", back_populates="job_alerts")

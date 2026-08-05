@@ -102,17 +102,17 @@ This file is self-contained; start with PHASE 1.
 ## PHASE 1 — Finish Missing Features (HIGH)
 
 ### 1. Real Auto-Apply
-- [ ] Playwright/Puppeteer headless worker that fills external job forms
-- [ ] Replace `setTimeout` + `Math.random()` in `AutoApplyButton.tsx`
-- [ ] `auto_apply.py` runs real worker, stores result/screenshot, retries
-- [ ] Auto-apply queue + per-user concurrency cap
+- [x] Playwright/Puppeteer headless worker that fills external job forms
+- [x] Replace `setTimeout` + `Math.random()` in `AutoApplyButton.tsx`
+- [x] `auto_apply.py` runs real worker, stores result/screenshot, retries
+- [x] Auto-apply queue + per-user concurrency cap
 
 ### 2. Job Alert Delivery Scheduler
-- [ ] Background worker (APScheduler) polling for new jobs
-- [ ] Match new jobs against active alerts
-- [ ] Email delivery via real SMTP (not just in-app notification)
-- [ ] Digest (daily/weekly) option per alert
-- [ ] Scheduler lifecycle: start/stop with app, no duplicate workers
+- [x] Background worker (APScheduler) polling for new jobs
+- [x] Match new jobs against active alerts
+- [x] Email delivery via real SMTP (not just in-app notification)
+- [x] Digest (daily/weekly) option per alert
+- [x] Scheduler lifecycle: start/stop with app, no duplicate workers
 
 ### 3. Auto-Screening Processing (complete)
 - [x] Confirm backend processes every new application against thresholds (on-the-fly score compute when no MatchScore exists)
@@ -215,7 +215,7 @@ This file is self-contained; start with PHASE 1.
 - [ ] Sort dropdown (score, date, salary)
 - [ ] Location filter + salary filter UI (salary exists hidden)
 - [ ] Remote toggle (exists as filter)
-- [ ] Job detail view/modal
+- [x] Job detail view/modal
 - [ ] Employer topbar search
 
 ### 16. Resume PDF export

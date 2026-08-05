@@ -6,7 +6,7 @@ import { useToast } from '@/context/ToastContext';
 import { getCurrentResume, getResumes, getJobPostings, createApplication, saveJob, unsaveJob, getSavedJobs, searchExternalJobs, saveExternalJob, applyExternalJob } from '@/lib/api';
 import { computeMatchScore } from '@/lib/matching';
 import type { Resume, JobPosting, SavedJob, ExternalJob } from '@/types';
-import { Spinner, EmptyState, Badge } from '@/components/ui';
+import { Spinner, EmptyState, Badge, Modal } from '@/components/ui';
 import { AutoApplyButton } from '@/components/AutoApplyButton';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
 
@@ -32,6 +32,7 @@ export function JobFeedPage() {
   const [externalStale, setExternalStale] = useState(false);
   const [savedExt, setSavedExt] = useState<Record<string, string>>({});
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedJob, setSelectedJob] = useState<JobPosting | ExternalJob | null>(null);
   const CATEGORIES = ['All', 'Software Engineering', 'Data Science & AI', 'Data Analytics', 'Business & MBA', 'Cloud & DevOps', 'Finance & Accounting', 'Marketing & Sales'];
 
   useEffect(() => {
@@ -237,6 +238,7 @@ export function JobFeedPage() {
                   {job.requirements.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{job.requirements.slice(0, 4).map((r, i) => <span key={i} className="badge bg-slate-800 text-slate-300 border border-slate-700">{r}</span>)}</div>}
                   {job.salary_min != null && <div className="mt-3 flex items-center gap-1 text-xs text-slate-400"><DollarSign className="h-3 w-3" />{job.salary_min.toLocaleString()} - {job.salary_max?.toLocaleString()} {job.salary_currency}</div>}
                   <div className="mt-4 flex items-center gap-2 border-t border-slate-700/50 pt-4">
+                    <button onClick={() => setSelectedJob(job)} className="btn-secondary text-xs">View</button>
                     <button onClick={() => handleExtApply(job)} disabled={!resume} className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"><Zap className="h-3.5 w-3.5" /> Apply</button>
                     {job.external_url && <a href={job.external_url} target="_blank" rel="noopener noreferrer" className="btn-secondary" title="Go to original site"><ExternalLink className="h-3.5 w-3.5" /></a>}
                     <button onClick={() => handleExtSave(job)} className={`btn ${saved ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}><Bookmark className={`h-3.5 w-3.5 ${saved ? 'fill-current' : ''}`} /></button>
@@ -279,6 +281,7 @@ export function JobFeedPage() {
                   )}
                   {job.salary_min && <div className="mt-3 flex items-center gap-1 text-xs text-slate-400"><DollarSign className="h-3 w-3" />{job.salary_min.toLocaleString()} - {job.salary_max?.toLocaleString()} {job.salary_currency}</div>}
                   <div className="mt-4 flex items-center gap-2 border-t border-slate-700/50 pt-4">
+                    <button onClick={() => setSelectedJob(job)} className="btn-secondary text-xs">View</button>
                     <button onClick={() => handleApply(job, 'platform')} disabled={!resume} className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"><Zap className="h-3.5 w-3.5" /> Apply</button>
                     {resume && job.external_url && <AutoApplyButton job={job} resume={resume} seekerId={profile!.id} matchScore={score ?? null} />}
                     {job.external_url && <button onClick={() => handleApply(job, 'manual_redirect')} className="btn-secondary" title="Go to original site"><ExternalLink className="h-3.5 w-3.5" /></button>}
@@ -290,6 +293,43 @@ export function JobFeedPage() {
           </div>
         )}
       </div>
+
+      {selectedJob && (
+        <Modal open={!!selectedJob} onClose={() => setSelectedJob(null)} title={selectedJob.title} maxWidth="max-w-2xl">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              {'company' in selectedJob && selectedJob.company && <span>{selectedJob.company}</span>}
+              {'location' in selectedJob && selectedJob.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{selectedJob.location}</span>}
+              {'is_remote' in selectedJob && selectedJob.is_remote && <Badge color="green">Remote</Badge>}
+              {'job_type' in selectedJob && selectedJob.job_type && <Badge color="slate">{selectedJob.job_type}</Badge>}
+              {'external_source' in selectedJob && selectedJob.external_source && <Badge color="teal">{selectedJob.external_source}</Badge>}
+            </div>
+            {'salary_min' in selectedJob && selectedJob.salary_min && (
+              <div className="flex items-center gap-1 text-sm text-slate-400">
+                <DollarSign className="h-4 w-4" />
+                {selectedJob.salary_min.toLocaleString()} - {selectedJob.salary_max?.toLocaleString()} {selectedJob.salary_currency}
+              </div>
+            )}
+            <div>
+              <h4 className="text-sm font-semibold text-slate-300">Description</h4>
+              <p className="mt-1 whitespace-pre-line text-sm text-slate-400">{selectedJob.description}</p>
+            </div>
+            {'requirements' in selectedJob && selectedJob.requirements.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-slate-300">Requirements</h4>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedJob.requirements.map((r, i) => <span key={i} className="badge bg-slate-800 text-slate-300 border border-slate-700">{r}</span>)}
+                </div>
+              </div>
+            )}
+            {'external_url' in selectedJob && selectedJob.external_url && (
+              <a href={selectedJob.external_url} target="_blank" rel="noopener noreferrer" className="btn-secondary inline-flex items-center gap-2">
+                <ExternalLink className="h-4 w-4" /> Go to original posting
+              </a>
+            )}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

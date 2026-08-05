@@ -65,25 +65,32 @@ def send_application_status_email(to: str, job_title: str, status: str, notes: s
     )
 
 
-def send_job_alert_email(to: str, jobs: list[dict], unsubscribe_url: str):
+def send_job_alert_email(seeker_email: str, seeker_name: str, matches: list[dict], alert_frequency: str = "daily"):
+    """Email a seeker a digest of new jobs matching their alert.
+
+    Each item in ``matches`` is a dict with keys: title, company, location,
+    match_score, link. Unsubscribe link points to the job-alerts management page.
+    """
+    count = len(matches)
     rows = "".join(
-        f'<li><a href="{job.get("url", "#")}">{job.get("title", "Job")}</a>'
+        f'<li><a href="{job.get("link", "#")}">{job.get("title", "Job")}</a>'
+        f' &mdash; {job.get("company") or "Unknown company"}'
         f' &mdash; {job.get("location") or "Remote"}'
-        f' &mdash; {job.get("score") or 0:.0f}% match</li>'
-        for job in jobs
+        f' &mdash; {job.get("match_score") or 0:.0f}% match</li>'
+        for job in matches
     )
-    count = len(jobs)
+    unsubscribe_url = f"{get_settings().APP_BASE_URL}/app/job-alerts"
     _send_email(
-        to=to,
+        to=seeker_email,
         subject=f"{count} new job{'s' if count != 1 else ''} matching your alerts",
         html=f"""
         <h1>New job matches</h1>
-        <p>Here {'are' if count != 1 else 'is'} {count} new job{'s' if count != 1 else ''} matching your alerts:</p>
+        <p>Hi {seeker_name}, here {'are' if count != 1 else 'is'} {count} new job{'s' if count != 1 else ''} matching your alert ({alert_frequency} digest):</p>
         <ul>{rows}</ul>
         <p><a href="{unsubscribe_url}">Manage or unsubscribe from alerts</a></p>
         """,
-        text=f"New jobs matching your alerts:\n" + "\n".join(
-            f"- {job.get('title')} ({job.get('location') or 'Remote'})"
-            for job in jobs
+        text=f"Hi {seeker_name}, new jobs matching your alerts ({alert_frequency} digest):\n" + "\n".join(
+            f"- {job.get('title')} ({job.get('company') or 'Unknown'}, {job.get('location') or 'Remote'})"
+            for job in matches
         ),
     )

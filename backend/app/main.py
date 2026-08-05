@@ -5,6 +5,7 @@ from app.config import get_settings
 from app.routers import auth, resumes, jobs, applications, matching, chat, saved_jobs, rewrites, auto_apply, admin, notifications, ws, job_alerts, external_jobs
 from app.database import get_db
 from app.workers import celery_app
+from app.services.job_alert_scheduler import start_scheduler, stop_scheduler
 
 settings = get_settings()
 
@@ -15,6 +16,16 @@ app = FastAPI(
 )
 
 app.state.celery = celery_app
+
+
+@app.on_event("startup")
+async def startup_event():
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    stop_scheduler()
 
 app.add_middleware(
     CORSMiddleware,

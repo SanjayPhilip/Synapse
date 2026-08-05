@@ -37,6 +37,8 @@ async def create_alert(
         keywords=data.keywords,
         category=data.category,
         location=data.location,
+        frequency=data.frequency,
+        email_enabled=data.email_enabled,
     )
     db.add(alert)
     await db.flush()
