@@ -30,6 +30,36 @@ async def test_register_and_login(client: AsyncClient):
     assert me_resp.json()['email'] == 'test@example.com'
 
 
+async def test_resend_verification(client: AsyncClient):
+    await client.post('/api/v1/auth/register', json={
+        'email': 'resend@example.com',
+        'full_name': 'Resend User',
+        'password': 'TestPass123!',
+        'role': 'seeker',
+    })
+
+    resp = await client.post('/api/v1/auth/resend-verification', json={'email': 'resend@example.com'})
+    assert resp.status_code == 200, resp.text
+    assert 'Verification email sent' in resp.json()['message']
+
+    unknown = await client.post('/api/v1/auth/resend-verification', json={'email': 'nobody@example.com'})
+    assert unknown.status_code == 404
+
+    register_verified = await client.post('/api/v1/auth/register', json={
+        'email': 'already@example.com',
+        'full_name': 'Verified User',
+        'password': 'TestPass123!',
+        'role': 'seeker',
+    })
+    verify_resp = await client.post('/api/v1/auth/verify-email', json={
+        'token': register_verified.json()['user']['verify_token'],
+    })
+    assert verify_resp.status_code == 200
+
+    already = await client.post('/api/v1/auth/resend-verification', json={'email': 'already@example.com'})
+    assert already.status_code == 400
+
+
 async def test_forgot_password_flow(client: AsyncClient):
     await client.post('/api/v1/auth/register', json={
         'email': 'reset@example.com',

@@ -2,7 +2,7 @@
 
 > AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform
 > Goal: when every item below is checked, the app is 100% production-complete.
-> Last updated: 2026-08-04
+> Last updated: 2026-08-05
 
 ---
 
@@ -26,6 +26,8 @@
 - Backend `_notify` shared source: `backend/app/routers/applications.py` (imported lazily inside functions elsewhere). It creates `Notification` + flush + WS push via `send_to_user` (ws.py silent if no connection).
 - Auto-apply endpoints return `_to_response()` (was raw ORM → `MissingGreenlet` 500). `AutoApplyLogResponse.job_posting` is `Optional[dict]`.
 - Job schemas in `backend/app/schemas/job.py` (`JobPostingCreate/Update/Response`, incl. `external_url`).
+- Email: `send_*_email` fns in `backend/app/services/email.py`; prints to stdout when `SMTP_HOST` unset (dev fallback). `POST /auth/resend-verification` exists; register emails the link too. Status-change emails fire on auto-screen + manual override.
+- Auto-screen: computed on submit (falls back to on-the-fly `compute_match` if no `MatchScore`). Audit trail: `ApplicationStatusHistory` table (reasons: submitted/auto_screen/manual) + `GET /applications/{id}/history`. New table needs `python -m app.migrate` (Alembic rev `286188382dec`).
 - `.env` holds real secrets (API keys) — never commit. `README` + API reference still unwritten (Docs section).
 
 ### How to run tomorrow
@@ -112,16 +114,16 @@ This file is self-contained; start with PHASE 1.
 - [ ] Scheduler lifecycle: start/stop with app, no duplicate workers
 
 ### 3. Auto-Screening Processing (complete)
-- [ ] Confirm backend processes every new application against thresholds
-- [ ] Employer-side screening summary view per job
-- [ ] Seeker notification on auto-approve/reject (exists — verify end-to-end)
-- [ ] Manual override of auto-screened status keeps audit trail
+- [x] Confirm backend processes every new application against thresholds (on-the-fly score compute when no MatchScore exists)
+- [x] Employer-side screening summary view per job (ApplicantsPage: counts by status + avg match)
+- [x] Seeker notification on auto-approve/reject (in-app `_notify` + status email — verified end-to-end)
+- [x] Manual override of auto-screened status keeps audit trail (`ApplicationStatusHistory` table + timeline in candidate drawer + migration)
 
 ### 4. Email Service (real, replace demo)
-- [ ] SMTP config in `.env` (host/user/pass/from)
-- [ ] Template emails: verify, reset, job alert, application status
-- [ ] Email verification RESEND endpoint (`POST /auth/resend-verification`)
-- [ ] Unsubscribe link in alert emails
+- [x] SMTP config in `.env` (host/user/pass/from)
+- [x] Template emails: verify, reset, job alert, application status
+- [x] Email verification RESEND endpoint (`POST /auth/resend-verification`) — wired to Register page; register now emails the link too
+- [x] Unsubscribe link in alert emails (template param; scheduler passes `/app/job-alerts`)
 
 ### 5. External Job Search Persistence
 - [ ] `ExternalJobs` table (dedup by external_source+external_id)
@@ -277,15 +279,15 @@ This file is self-contained; start with PHASE 1.
 - [ ] Graceful shutdown
 
 ### 24. Database & storage
-- [ ] Migration tool (Alembic) replacing ad-hoc `migrate.py`
+- [x] Migration tool (Alembic) replacing ad-hoc `migrate.py`
 - [ ] Backups + restore procedure
 - [ ] Avatar/file storage directory (local, then S3-compatible)
 
 ### 25. Deployment
-- [ ] Dockerfile(s) for frontend + backend + worker
-- [ ] docker-compose (app + db + worker)
-- [ ] CI/CD pipeline (lint, test, build, deploy)
-- [ ] Environment config template (`.env.example`)
+- [x] Dockerfile(s) for frontend + backend (worker pending)
+- [x] docker-compose (app + db; worker service pending)
+- [x] CI/CD pipeline (lint, typecheck, py_compile, pytest)
+- [x] Environment config template (`.env.example`)
 - [ ] Production build of frontend served by backend/CDN
 
 ---
@@ -293,13 +295,13 @@ This file is self-contained; start with PHASE 1.
 ## PHASE 9 — Testing & QA (MEDIUM/HIGH)
 
 ### 26. Backend tests (pytest)
-- [ ] Auth: register/login/verify/reset/change-password/roles
+- [ ] Auth: register/login/verify/reset/change-password/roles (partial: register/login, forgot-password, resend)
 - [ ] Resumes: upload/parse/version
-- [ ] Matching: score math + gap report
-- [ ] Applications: submit, duplicate, auto-screen, status
+- [ ] Matching: score math + gap report (partial: match score)
+- [ ] Applications: submit, duplicate, auto-screen, status (partial: auto-screen shortlist, on-the-fly score compute, manual-override audit trail)
 - [ ] Notifications + job alerts + scheduler logic
 - [ ] Admin endpoints + permissions
-- [ ] CI runs them
+- [x] CI runs them (7 tests, see above)
 
 ### 27. Frontend tests (vitest)
 - [ ] resume-parser unit tests

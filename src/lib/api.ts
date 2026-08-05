@@ -81,6 +81,10 @@ export async function updateApplication(id: string, updates: Partial<Application
   return api.put<Application>(`/api/v1/applications/${id}`, updates);
 }
 
+export async function getApplicationHistory(id: string): Promise<ApplicationStatusHistory[]> {
+  return api.get<ApplicationStatusHistory[]>(`/api/v1/applications/${id}/history`);
+}
+
 // ============ MATCH SCORES ============
 export async function getMatchScore(resumeId: string, jobPostingId: string, _direction: string): Promise<MatchScore | null> {
   try {
@@ -216,6 +220,10 @@ export async function forgotPassword(email: string): Promise<{ message: string; 
 
 export async function verifyEmail(token: string): Promise<{ message: string }> {
   return api.post<{ message: string }>('/api/v1/auth/verify-email', { token });
+}
+
+export async function resendVerification(email: string): Promise<{ message: string }> {
+  return api.post<{ message: string }>('/api/v1/auth/resend-verification', { email });
 }
 
 export async function resetPassword(token: string, new_password: string): Promise<{ message: string }> {

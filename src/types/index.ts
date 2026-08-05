@@ -186,6 +186,17 @@ export interface Notification {
   created_at: string;
 }
 
+export interface ApplicationStatusHistory {
+  id: string;
+  application_id: string;
+  old_status: string | null;
+  new_status: string;
+  changed_by: string | null;
+  reason: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface AutoApplyLog {
   id: string;
   seeker_id: string;

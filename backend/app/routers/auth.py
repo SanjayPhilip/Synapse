@@ -5,7 +5,7 @@ from jose import jwt, JWTError
 from datetime import timedelta
 from app.database import get_db
 from app.models import Profile
-from app.schemas.auth import UserRegister, UserLogin, TokenResponse, ProfileResponse, ProfileUpdate, ForgotPasswordRequest, PasswordResetRequest, VerifyEmailRequest, VerifyEmailResponse, PasswordChangeRequest
+from app.schemas.auth import UserRegister, UserLogin, TokenResponse, ProfileResponse, ProfileUpdate, ForgotPasswordRequest, PasswordResetRequest, VerifyEmailRequest, VerifyEmailResponse, PasswordChangeRequest, ResendVerificationRequest
 from app.middleware.auth import hash_password, verify_password, create_access_token, get_current_user
 from app.services.email import send_verification_email, send_password_reset_email
 from app.middleware.rate_limit import rate_limiter
@@ -39,6 +39,7 @@ async def register(
         {"sub": str(user.id), "purpose": "email_verify"},
         expires_delta=timedelta(minutes=30),
     )
+    send_verification_email(user.email, f"{get_settings().APP_BASE_URL}/verify-email?token={verify_token}")
 
     token = create_access_token({"sub": str(user.id), "role": user.role})
     return TokenResponse(
@@ -111,8 +112,28 @@ async def verify_email(
 
     user.is_verified = True
     await db.flush()
-    send_verification_email(user.email, f"{get_settings().APP_BASE_URL}/verify-email?token={data.token}")
     return VerifyEmailResponse(message="Email verified successfully. You can now log in.")
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    data: ResendVerificationRequest,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(rate_limiter(5, 60)),
+):
+    result = await db.execute(select(Profile).where(Profile.email == data.email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with that email")
+    if user.is_verified:
+        raise HTTPException(status_code=400, detail="Email already verified")
+
+    verify_token = create_access_token(
+        {"sub": str(user.id), "purpose": "email_verify"},
+        expires_delta=timedelta(minutes=30),
+    )
+    send_verification_email(user.email, f"{get_settings().APP_BASE_URL}/verify-email?token={verify_token}")
+    return {"message": "Verification email sent. Check your inbox."}
 
 
 @router.post("/forgot-password")

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Users, Star, CheckCircle2, XCircle, ChevronRight, Lightbulb, Download } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getJobPostings, getApplicationsForJob, updateApplication, getGapExplanation } from '@/lib/api';
+import { getJobPostings, getApplicationsForJob, updateApplication, getGapExplanation, getApplicationHistory } from '@/lib/api';
 import { api } from '@/lib/api-client';
 import { computeMatchScore } from '@/lib/matching';
-import type { JobPosting, Application, Resume, Profile } from '@/types';
+import type { JobPosting, Application, Resume, Profile, ApplicationStatusHistory } from '@/types';
 import { Spinner, EmptyState, Badge, ScoreRing } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
 
@@ -23,6 +23,7 @@ export function ApplicantsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantWithDetails | null>(null);
   const [aiExplanation, setAiExplanation] = useState('');
+  const [history, setHistory] = useState<ApplicationStatusHistory[]>([]);
 
   useEffect(() => {
     if (!profile) return;
@@ -65,6 +66,13 @@ export function ApplicantsPage() {
       try { const result = await getGapExplanation({ resume_id: selectedApplicant.resume_id, job_posting_id: selectedJobId }); setAiExplanation(result.explanation); } catch { setAiExplanation(''); }
     })();
   }, [selectedApplicant, selectedJobId]);
+
+  useEffect(() => {
+    if (!selectedApplicant) { setHistory([]); return; }
+    (async () => {
+      try { setHistory(await getApplicationHistory(selectedApplicant.id)); } catch { setHistory([]); }
+    })();
+  }, [selectedApplicant]);
 
   function exportApplicantsCSV() {
     if (applicants.length === 0) { alert('No applicants to export.'); return; }
@@ -120,6 +128,37 @@ export function ApplicantsPage() {
         <EmptyState icon={<Users className="h-12 w-12" />} title="No applicants yet" description="No one has applied to this posting yet." />
       ) : (
         <>
+          {(() => {
+            const statusCounts = applicants.reduce<Record<string, number>>((acc, a) => { acc[a.status] = (acc[a.status] || 0) + 1; return acc; }, {});
+            const avg = Math.round(applicants.reduce((s, a) => s + (a.score || 0), 0) / applicants.length);
+            const statusMeta: Record<string, { label: string; dot: string; text: string }> = {
+              applied: { label: 'Applied', dot: 'bg-blue-500', text: 'text-blue-400' },
+              shortlisted: { label: 'Shortlisted', dot: 'bg-amber-500', text: 'text-amber-400' },
+              rejected: { label: 'Rejected', dot: 'bg-red-500', text: 'text-red-400' },
+              hired: { label: 'Hired', dot: 'bg-emerald-500', text: 'text-emerald-400' },
+            };
+            return (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                <GlassmorphicCard className="p-4">
+                  <div className="text-xs font-semibold text-slate-500 uppercase">Applicants</div>
+                  <div className="mt-1 text-2xl font-bold text-white">{applicants.length}</div>
+                </GlassmorphicCard>
+                <GlassmorphicCard className="p-4">
+                  <div className="text-xs font-semibold text-slate-500 uppercase">Avg Match</div>
+                  <div className="mt-1 text-2xl font-bold text-cyan-400">{avg}%</div>
+                </GlassmorphicCard>
+                {(['applied', 'shortlisted', 'rejected', 'hired'] as const).map((s) => (
+                  <GlassmorphicCard key={s} className="p-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase">
+                      <span className={`h-2 w-2 rounded-full ${statusMeta[s].dot}`} /> {statusMeta[s].label}
+                    </div>
+                    <div className={`mt-1 text-2xl font-bold ${statusMeta[s].text}`}>{statusCounts[s] || 0}</div>
+                  </GlassmorphicCard>
+                ))}
+              </div>
+            );
+          })()}
+
           <GlassmorphicCard className="overflow-hidden">
             <table className="w-full">
               <thead className="border-b border-slate-700/50">
@@ -172,6 +211,25 @@ export function ApplicantsPage() {
                     </div>
                   </div>
                   <div className="flex justify-center"><ScoreRing score={selectedApplicant.score || 0} size={100} /></div>
+
+                  {history.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-300 mb-3">Status Timeline</h4>
+                      <ol className="relative space-y-3 border-l border-slate-700 pl-4">
+                        {history.map((h) => (
+                          <li key={h.id} className="relative">
+                            <span className={`absolute -left-[21.5px] top-1 h-2.5 w-2.5 rounded-full ${h.reason === 'manual' ? 'bg-violet-500' : h.reason === 'auto_screen' ? 'bg-cyan-500' : 'bg-slate-500'}`} />
+                            <div className="text-sm font-medium text-white capitalize">{h.new_status}</div>
+                            <div className="text-xs text-slate-500">
+                              {h.reason === 'manual' ? 'Manual decision' : h.reason === 'auto_screen' ? 'Auto-screened' : 'Submitted'}
+                              {' · '}{new Date(h.created_at).toLocaleString()}
+                            </div>
+                            {h.notes && <div className="text-xs text-slate-400 mt-0.5">"{h.notes}"</div>}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
 
                   {selectedApplicant.resume?.skills && selectedApplicant.resume.skills.length > 0 && (
                     <div>

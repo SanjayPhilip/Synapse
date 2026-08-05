@@ -38,7 +38,7 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 - ✔️ **External Job Search** — Live search across Adzuna + JSearch APIs with cross-source deduplication.
 - 🧪 **Opt-In Auto-Apply** — Per-listing workflow that logs and tracks an automated application attempt against external listings. *Note: the current build simulates the headless-browser step client-side; the real automation engine is on the roadmap.*
 - ✔️ **Account Recovery & Password Reset** — Forgot-password flow emails a time-limited reset link (30-min JWT token); demo mode surfaces the link in the UI.
-- ✔️ **Email Verification on Registration** — New accounts require email verification before login; demo mode returns a `verify_token` in the registration response for immediate verification.
+- ✔️ **Email Verification on Registration** — New accounts require email verification before login; verification link is emailed (real SMTP when configured, else demo) and can be re-sent via `POST /auth/resend-verification`.
 - ✔️ **Rate Limiting** — In-memory rate limiter on auth endpoints (register: 5/60s, login: 10/60s, forgot-password: 3/60s, change-password: 5/60s) to mitigate brute-force attacks.
 - ✔️ **Password Change** — Authenticated `POST /auth/change-password` verifying the current password before hashing the new one.
 - ✔️ **AI Paste Parser** — `POST /resumes/parse` turns raw pasted resume text into structured skills/experience/education (regex + Gemini fallback).
@@ -54,6 +54,9 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
   - **Auto-Reject**: Candidates scoring < threshold (e.g. 50%) are automatically set to `"rejected"`.
   - **Manual Review**: Borderline candidates remain in `"applied"` for recruiter review.
   - **Custom Threshold Controls**: Toggle screening on/off and configure percentage thresholds per job posting.
+  - **Always-On Screening**: Scores are computed on the fly if a cached match score is missing, so every application is screened.
+- ✔️ **Screening Audit Trail** — Every status change (submit, auto-screen, manual override) is recorded in `application_status_history` and shown as a timeline in the candidate drawer.
+- ✔️ **Email Notifications** — Real SMTP delivery (when configured) for verification, password reset, application-status changes, and job-alert matches; application-status emails include employer notes.
 - ✔️ **Job Posting Management** — Full CRUD interface for creating, editing, and closing job postings with domain feed categorization.
 - ✔️ **Bidirectional Candidate Ranking** — Applicants are automatically ranked per job posting based on true match fit.
 - ✔️ **Candidate Pool Conversational Query** — Employers can query the AI chat assistant about their applicant pool to find candidates conversationally.
@@ -291,11 +294,11 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 
 - ✅ **Enforce a real `SECRET_KEY`** — startup fails if `SECRET_KEY` is still the default (`.env` override required).
 - ✅ **Rate limiting** — in-memory rate limiter on auth endpoints (register 5/60s, login 10/60s, forgot-password 3/60s).
-- ✅ **Email verification** — bind account ownership to a verified address (also listed under Functionality).
+- ✅ **Email verification** — bind account ownership to a verified address (also listed under Functionality); resendable via `POST /auth/resend-verification`.
 
 ### 🧪 Testing & Deployment
 
-- ✅ **Test suite (NFR-08)** — pytest harness: auth, reset-token, auto-screening, and match-score smoke tests.
+- ✅ **Test suite (NFR-08)** — pytest harness: auth (register/login, forgot-password, resend-verification), auto-screening (threshold + on-the-fly score), audit trail, and match-score smoke tests.
 - ✅ **Docker (NFR-09)** — `Dockerfile` + `docker-compose` for backend, frontend, and Postgres.
 - ✅ **CI pipeline** — lint + typecheck + test on push (GitHub Actions).
 - ✅ **Prod DB migrations** — Alembic (`alembic.ini` + `backend/alembic/versions/`) with a `python -m app.migrate` runner (`npm run migrate`). `init_db` remains for zero-config local dev.

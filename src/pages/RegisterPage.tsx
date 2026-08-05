@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Brain, AlertCircle, User, Briefcase, Mail, CheckCircle, Loader2, Lock, ArrowRight } from 'lucide-react';
 import { registerSeeker, registerEmployer } from '@/lib/auth';
-import { verifyEmail } from '@/lib/api';
+import { verifyEmail, resendVerification } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import NeuralNetworkBg from '@/components/NeuralNetworkBg';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
@@ -23,6 +23,8 @@ export function RegisterPage({ role }: { role: 'seeker' | 'employer' }) {
   const [verifyToken, setVerifyToken] = useState<string | null>(null);
   const [verifyError, setVerifyError] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
 
   const isEmployer = selectedRole === 'employer';
 
@@ -78,6 +80,19 @@ export function RegisterPage({ role }: { role: 'seeker' | 'employer' }) {
       setVerifyError(err.message || 'Verification failed. Please try again.');
     } finally {
       setVerifyLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    setResendMsg('');
+    setResendLoading(true);
+    try {
+      const result = await resendVerification(email);
+      setResendMsg(result.message);
+    } catch (e: unknown) {
+      setResendMsg((e as Error).message || 'Failed to resend verification email.');
+    } finally {
+      setResendLoading(false);
     }
   }
 
@@ -268,7 +283,7 @@ export function RegisterPage({ role }: { role: 'seeker' | 'employer' }) {
                   <div className="flex-1">
                     <h3 className="font-medium text-cyan-400">Verify Your Email</h3>
                     <p className="text-sm text-slate-300 mt-1">
-                      Verification link sent to <strong>{email}</strong>. In demo mode, click below to verify.
+                      Verification link sent to <strong>{email}</strong>. No link in your inbox? Use the demo button below or resend.
                     </p>
                     {verifyError && (
                       <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
@@ -287,6 +302,15 @@ export function RegisterPage({ role }: { role: 'seeker' | 'employer' }) {
                         )}
                       </button>
                     </form>
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resendLoading}
+                      className="mt-2 w-full text-center text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2 disabled:opacity-50"
+                    >
+                      {resendLoading ? 'Resending...' : 'Resend verification email'}
+                    </button>
+                    {resendMsg && <p className="mt-2 text-xs text-emerald-400">{resendMsg}</p>}
                   </div>
                 </div>
               </div>

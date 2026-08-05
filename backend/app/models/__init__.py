@@ -121,6 +121,22 @@ class Application(Base):
     seeker = relationship("Profile", back_populates="applications")
     job_posting = relationship("JobPosting", back_populates="applications")
     resume = relationship("Resume", back_populates="applications")
+    status_history = relationship("ApplicationStatusHistory", back_populates="application", cascade="all, delete-orphan")
+
+
+class ApplicationStatusHistory(Base):
+    __tablename__ = "application_status_history"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    application_id = Column(GUID, ForeignKey("applications.id", ondelete="CASCADE"), nullable=False, index=True)
+    old_status = Column(String, nullable=True)
+    new_status = Column(String, nullable=False)
+    changed_by = Column(GUID, ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True)
+    reason = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    application = relationship("Application", back_populates="status_history")
 
 
 class MatchScore(Base):

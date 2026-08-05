@@ -4,9 +4,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.database import get_db
-from app.models import Application, JobPosting, Profile, Notification
-from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse
+from app.models import Application, JobPosting, Profile, Notification, ApplicationStatusHistory
+from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse, ApplicationHistoryResponse
 from app.middleware.auth import get_current_user
+
+
+async def _record_history(
+    db: AsyncSession,
+    application_id,
+    old_status: str | None,
+    new_status: str,
+    actor_id=None,
+    reason: str | None = None,
+    notes: str | None = None,
+):
+    db.add(ApplicationStatusHistory(
+        application_id=application_id,
+        old_status=old_status,
+        new_status=new_status,
+        changed_by=actor_id,
+        reason=reason,
+        notes=notes,
+    ))
+    await db.flush()
 
 
 async def _notify(db: AsyncSession, user_id, title: str, message: str, notification_type: str = "info", link: str | None = None):
@@ -133,10 +153,34 @@ async def create_application(
         ms = ms_res.scalar_one_or_none()
         if ms:
             match_score_val = ms.overall_score
-            if match_score_val >= getattr(job, 'auto_approve_threshold', 85):
-                status = "shortlisted"
-            elif match_score_val < getattr(job, 'auto_reject_threshold', 50):
-                status = "rejected"
+        else:
+            from starlette.concurrency import run_in_threadpool
+            from app.models import Resume
+            from app.services.matching import compute_match
+            resume_result = await db.execute(select(Resume).where(Resume.id == data.resume_id))
+            resume = resume_result.scalar_one_or_none()
+            if resume:
+                scores = await run_in_threadpool(
+                    compute_match,
+                    resume.raw_text,
+                    resume.skills or [],
+                    job.description,
+                    job.requirements or [],
+                )
+                match_score_val = scores["overall_score"]
+                db.add(MatchScore(
+                    resume_id=data.resume_id,
+                    job_posting_id=data.job_posting_id,
+                    direction="seeker",
+                    overall_score=scores["overall_score"],
+                    keyword_score=scores["keyword_score"],
+                    semantic_score=scores["semantic_score"],
+                    gap_report=scores["gap_report"],
+                ))
+        if match_score_val >= getattr(job, 'auto_approve_threshold', 85):
+            status = "shortlisted"
+        elif match_score_val < getattr(job, 'auto_reject_threshold', 50):
+            status = "rejected"
 
     app = Application(
         seeker_id=current_user.id,
@@ -151,9 +195,14 @@ async def create_application(
     await db.flush()
     await db.refresh(app)
 
+    await _record_history(db, app.id, None, "applied", actor_id=current_user.id, reason="submitted")
+    if status != "applied":
+        await _record_history(db, app.id, "applied", status, actor_id=current_user.id, reason="auto_screen")
     await _notify(db, job.employer_id, "New application", f"{current_user.full_name} applied to \"{job.title}\"", "application", link=f"/app/applicants")
     if status != "applied":
         await _notify(db, current_user.id, "Application auto-screened", f"Your application for \"{job.title}\" was {status}.", "application", link="/app/applications")
+        from app.services.email import send_application_status_email
+        send_application_status_email(current_user.email, job.title, status)
 
     return _to_response(app)
 
@@ -184,6 +233,7 @@ async def update_application(
         if not job_result.scalar_one_or_none():
             raise HTTPException(status_code=403, detail="Not authorized")
 
+    old_status = app.status
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(app, key, value)
 
@@ -198,7 +248,28 @@ async def update_application(
             "application",
             link="/app/applications",
         )
+        from app.services.email import send_application_status_email
+        seeker_result = await db.execute(select(Profile).where(Profile.id == app.seeker_id))
+        seeker = seeker_result.scalar_one_or_none()
+        if seeker:
+            send_application_status_email(seeker.email, job.title if job else "a job", app.status, app.employer_notes)
+        await _record_history(db, app.id, old_status, app.status, actor_id=current_user.id,
+                              reason="manual", notes=app.employer_notes)
 
     await db.flush()
     await db.refresh(app)
     return _to_response(app)
+
+
+@router.get("/{application_id}/history", response_model=list[ApplicationHistoryResponse])
+async def get_application_history(
+    application_id: uuid.UUID,
+    current_user: Profile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(ApplicationStatusHistory)
+        .where(ApplicationStatusHistory.application_id == application_id)
+        .order_by(ApplicationStatusHistory.created_at.asc())
+    )
+    return result.scalars().all()
