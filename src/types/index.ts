@@ -210,3 +210,28 @@ export interface AutoApplyLog {
   created_at: string;
   updated_at: string;
 }
+
+export interface ExternalJob {
+  id: string;
+  external_source: string;
+  external_id: string;
+  title: string;
+  company: string | null;
+  description: string;
+  requirements: string[];
+  location: string | null;
+  is_remote: boolean;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string;
+  job_type: string | null;
+  category: string | null;
+  external_url: string | null;
+  posted_at: string | null;
+  fetched_at: string;
+}
+
+export interface ExternalJobSearchResponse {
+  stale: boolean;
+  jobs: ExternalJob[];
+}

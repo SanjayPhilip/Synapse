@@ -262,3 +262,30 @@ class AutoApplyLog(Base):
 
     seeker = relationship("Profile", back_populates="auto_apply_logs")
     job_posting = relationship("JobPosting", back_populates="auto_apply_logs")
+
+
+class ExternalJob(Base):
+    __tablename__ = "external_jobs"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    external_source = Column(String, nullable=False)
+    external_id = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    company = Column(String, nullable=True)
+    description = Column(Text, nullable=False, default="")
+    requirements = Column(JSON, nullable=False, default=[])
+    location = Column(String, nullable=True)
+    is_remote = Column(Boolean, nullable=False, default=False)
+    salary_min = Column(Integer, nullable=True)
+    salary_max = Column(Integer, nullable=True)
+    salary_currency = Column(String, nullable=False, default="USD")
+    job_type = Column(String, nullable=True)
+    category = Column(String, nullable=True)
+    external_url = Column(String, nullable=True)
+    posted_at = Column(DateTime, nullable=True)
+    fetched_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (Index("uq_external_jobs_source_id", "external_source", "external_id", unique=True),)

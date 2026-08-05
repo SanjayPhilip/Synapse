@@ -35,8 +35,8 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 - ✔️ **Match Score & Gap Report** — Calculates fit score using **40% Keyword Match + 60% Dense Semantic Similarity** (`all-MiniLM-L6-v2` embeddings), detailing missing skills and match highlights.
 - ✔️ **Grounded Resume Rewrites** — AI-powered experience rewriting suggestions that improve weak bullet points without fabricating experience (Gemini API).
 - ✔️ **Context-Aware AI Chat Assistant** — Floating assistant widget that answers questions about job fit, resume recommendations, and application status.
-- ✔️ **External Job Search** — Live search across Adzuna + JSearch APIs with cross-source deduplication.
-- 🧪 **Opt-In Auto-Apply** — Per-listing workflow that logs and tracks an automated application attempt against external listings. *Note: the current build simulates the headless-browser step client-side; the real automation engine is on the roadmap.*
+- ✔️ **External Job Search** — Live search across Adzuna + JSearch APIs with cross-source deduplication, DB-as-cache (serves cached results with a `stale` flag when providers are unreachable), and save/apply flows that materialize external listings into tracked Saved Jobs / the Auto-Apply queue.
+- 🧪 **Opt-In Auto-Apply** — Per-listing workflow that queues an automated application attempt against external listings (`auto_apply_logs` pending queue). *Note: the current build queues the attempt and redirects to the source site; the headless-browser automation engine (worker) is item 1 on the roadmap.*
 - ✔️ **Account Recovery & Password Reset** — Forgot-password flow emails a time-limited reset link (30-min JWT token); demo mode surfaces the link in the UI.
 - ✔️ **Email Verification on Registration** — New accounts require email verification before login; verification link is emailed (real SMTP when configured, else demo) and can be re-sent via `POST /auth/resend-verification`.
 - ✔️ **Rate Limiting** — In-memory rate limiter on auth endpoints (register: 5/60s, login: 10/60s, forgot-password: 3/60s, change-password: 5/60s) to mitigate brute-force attacks.
@@ -298,7 +298,7 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 
 ### 🧪 Testing & Deployment
 
-- ✅ **Test suite (NFR-08)** — pytest harness: auth (register/login, forgot-password, resend-verification), auto-screening (threshold + on-the-fly score), audit trail, and match-score smoke tests.
+- ✅ **Test suite (NFR-08)** — pytest harness (12 tests): auth (register/login, forgot-password, resend-verification), auto-screening (threshold + on-the-fly score), audit trail, match-score smoke tests, and external jobs (search/dedup/cache-fallback, save/apply materialization).
 - ✅ **Docker (NFR-09)** — `Dockerfile` + `docker-compose` for backend, frontend, and Postgres.
 - ✅ **CI pipeline** — lint + typecheck + test on push (GitHub Actions).
 - ✅ **Prod DB migrations** — Alembic (`alembic.ini` + `backend/alembic/versions/`) with a `python -m app.migrate` runner (`npm run migrate`). `init_db` remains for zero-config local dev.

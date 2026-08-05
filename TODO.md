@@ -28,6 +28,7 @@
 - Job schemas in `backend/app/schemas/job.py` (`JobPostingCreate/Update/Response`, incl. `external_url`).
 - Email: `send_*_email` fns in `backend/app/services/email.py`; prints to stdout when `SMTP_HOST` unset (dev fallback). `POST /auth/resend-verification` exists; register emails the link too. Status-change emails fire on auto-screen + manual override.
 - Auto-screen: computed on submit (falls back to on-the-fly `compute_match` if no `MatchScore`). Audit trail: `ApplicationStatusHistory` table (reasons: submitted/auto_screen/manual) + `GET /applications/{id}/history`. New table needs `python -m app.migrate` (Alembic rev `286188382dec`).
+- External jobs (item 5, rev `3e5f1a7c9b2d`): `ExternalJob` table dedups by `(external_source, external_id)`. `app/services/external_jobs.py` fetches Adzuna+JSearch (skipped when API keys unset); DB is the cache — search returns `stale=true` + cached rows when providers fail. Search endpoint commits after serializing (service does NOT commit — rows stay un-expired for `model_validate`). Save/apply materialize into `JobPosting` under a system employer profile `external-jobs@synapse.local` (password_hash `!`), then reuse `SavedJob`/`AutoApplyLog` (apply = pending queue, worker in item 1). Frontend: `searchExternalJobs/saveExternalJob/applyExternalJob` in `src/lib/api.ts`; JobFeedPage replaced the Supabase edge fn.
 - `.env` holds real secrets (API keys) — never commit. `README` + API reference still unwritten (Docs section).
 
 ### How to run tomorrow
@@ -126,11 +127,12 @@ This file is self-contained; start with PHASE 1.
 - [x] Unsubscribe link in alert emails (template param; scheduler passes `/app/job-alerts`)
 
 ### 5. External Job Search Persistence
-- [ ] `ExternalJobs` table (dedup by external_source+external_id)
-- [ ] Adzuna (`ADZUNA_APP_ID/KEY`) + JSearch (`JSEARCH_API_KEY`) fetchers
-- [ ] Store/aggregate listings; fallback cache when APIs down
-- [ ] External job → save/apply flow via `external_url`
-- [ ] Backend rate limiting + caching for external API calls
+- [x] `ExternalJobs` table (dedup by external_source+external_id; migration `3e5f1a7c9b2d`)
+- [x] Adzuna (`ADZUNA_APP_ID/KEY`) + JSearch (`JSEARCH_API_KEY`) fetchers (`app/services/external_jobs.py`)
+- [x] Store/aggregate listings; fallback cache when APIs down (`stale` flag in search response)
+- [x] External job → save/apply flow via `external_url` (materialize → JobPosting → SavedJob/AutoApplyLog)
+- [x] Backend rate limiting (15/60 on search) + DB-as-cache
+- [ ] (deferred) external-job alert emails + AI form mapping — ships with items 1/2
 
 ---
 
@@ -142,7 +144,7 @@ This file is self-contained; start with PHASE 1.
 - [ ] Phone, location, linkedin, website fields
 
 ### 7. Settings — Security
-- [ ] Password change FORM in Settings UI (backend endpoint exists)
+- [x] Password change FORM in Settings UI (backend endpoint exists)
 - [ ] Email change (new email → re-verify before switch)
 - [ ] Active sessions list + revoke-session (session tokens table)
 - [ ] Delete-account danger zone (confirm modal, soft-delete + admin flag)
@@ -299,9 +301,10 @@ This file is self-contained; start with PHASE 1.
 - [ ] Resumes: upload/parse/version
 - [ ] Matching: score math + gap report (partial: match score)
 - [ ] Applications: submit, duplicate, auto-screen, status (partial: auto-screen shortlist, on-the-fly score compute, manual-override audit trail)
+- [ ] External jobs: search/dedup/cache-fallback, save/apply materialization (partial: 5 tests)
 - [ ] Notifications + job alerts + scheduler logic
 - [ ] Admin endpoints + permissions
-- [x] CI runs them (7 tests, see above)
+- [x] CI runs them (12 tests, see above)
 
 ### 27. Frontend tests (vitest)
 - [ ] resume-parser unit tests

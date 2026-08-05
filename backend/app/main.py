@@ -2,8 +2,9 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
-from app.routers import auth, resumes, jobs, applications, matching, chat, saved_jobs, rewrites, auto_apply, admin, notifications, ws, job_alerts
+from app.routers import auth, resumes, jobs, applications, matching, chat, saved_jobs, rewrites, auto_apply, admin, notifications, ws, job_alerts, external_jobs
 from app.database import get_db
+from app.workers import celery_app
 
 settings = get_settings()
 
@@ -12,6 +13,8 @@ app = FastAPI(
     description="AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform",
     version="2.0.0",
 )
+
+app.state.celery = celery_app
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,6 +37,7 @@ app.include_router(admin.router)
 app.include_router(notifications.router)
 app.include_router(ws.router)
 app.include_router(job_alerts.router)
+app.include_router(external_jobs.router)
 
 
 @app.get("/health")

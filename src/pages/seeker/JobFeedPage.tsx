@@ -3,9 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { Briefcase, MapPin, DollarSign, ExternalLink, Bookmark, Zap, Search, SlidersHorizontal, Globe, Loader2, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { getCurrentResume, getResumes, getJobPostings, createApplication, saveJob, unsaveJob, getSavedJobs } from '@/lib/api';
+import { getCurrentResume, getResumes, getJobPostings, createApplication, saveJob, unsaveJob, getSavedJobs, searchExternalJobs, saveExternalJob, applyExternalJob } from '@/lib/api';
 import { computeMatchScore } from '@/lib/matching';
-import type { Resume, JobPosting, SavedJob } from '@/types';
+import type { Resume, JobPosting, SavedJob, ExternalJob } from '@/types';
 import { Spinner, EmptyState, Badge } from '@/components/ui';
 import { AutoApplyButton } from '@/components/AutoApplyButton';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
@@ -24,11 +24,13 @@ export function JobFeedPage() {
   const [filter, setFilter] = useState<'all' | 'remote' | 'full_time' | 'internship'>('all');
   const [salaryMin, setSalaryMin] = useState(0);
   const [showSalaryFilter, setShowSalaryFilter] = useState(false);
-  const [externalJobs, setExternalJobs] = useState<JobPosting[]>([]);
+  const [externalJobs, setExternalJobs] = useState<ExternalJob[]>([]);
   const [searchingExternal, setSearchingExternal] = useState(false);
   const [extSearchQuery, setExtSearchQuery] = useState('');
   const [extSearchLocation, setExtSearchLocation] = useState('');
   const [showExternalSearch, setShowExternalSearch] = useState(false);
+  const [externalStale, setExternalStale] = useState(false);
+  const [savedExt, setSavedExt] = useState<Record<string, string>>({});
   const [selectedCategory, setSelectedCategory] = useState('All');
   const CATEGORIES = ['All', 'Software Engineering', 'Data Science & AI', 'Data Analytics', 'Business & MBA', 'Cloud & DevOps', 'Finance & Accounting', 'Marketing & Sales'];
 
@@ -58,19 +60,18 @@ export function JobFeedPage() {
     if (!extSearchQuery.trim()) return;
     setSearchingExternal(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/job-search?query=${encodeURIComponent(extSearchQuery)}&location=${encodeURIComponent(extSearchLocation)}`, { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` } });
-      if (!response.ok) { setExternalJobs([]); return; }
-      const data = await response.json();
-      if (!data?.jobs) { setExternalJobs([]); return; }
-      const transformed: JobPosting[] = data.jobs.map((j: any) => ({
-        id: `ext-${j.external_source}-${j.external_id}`, employer_id: '', title: j.title, description: j.description,
-        requirements: j.requirements || [], responsibilities: [], location: j.location, is_remote: j.is_remote,
-        salary_min: j.salary_min, salary_max: j.salary_max, salary_currency: 'USD', job_type: j.job_type,
-        status: 'active', external_source: j.external_source, external_id: j.external_id, external_url: j.external_url,
-        created_at: new Date().toISOString(), updated_at: new Date().toISOString(), closed_at: null,
-      }));
-      if (resume) { const scoreMap = { ...scores }; for (const job of transformed) { const score = computeMatchScore(resume.raw_text, resume.skills, job.description, job.requirements); scoreMap[job.id] = score.overall_score; } setScores(scoreMap); }
-      setExternalJobs(transformed);
+      const response = await searchExternalJobs(extSearchQuery.trim(), extSearchLocation.trim());
+      setExternalStale(response.stale);
+      if (response.jobs.length === 0) { setExternalJobs([]); return; }
+      if (resume) {
+        const scoreMap = { ...scores };
+        for (const job of response.jobs) {
+          const score = computeMatchScore(resume.raw_text, resume.skills, job.description, job.requirements);
+          scoreMap[job.id] = score.overall_score;
+        }
+        setScores(scoreMap);
+      }
+      setExternalJobs(response.jobs);
     } catch (e) { console.error(e); setExternalJobs([]); } finally { setSearchingExternal(false); }
   }
 
@@ -90,6 +91,33 @@ export function JobFeedPage() {
       if (via === 'manual_redirect' && job.external_url) window.open(job.external_url, '_blank');
       showToast('Application submitted!');
     } catch (e: any) { showToast(e.code === '23505' ? "Already applied." : 'Failed to submit.', 'error'); }
+  }
+
+  async function handleExtSave(job: ExternalJob) {
+    if (!profile) return;
+    const postingId = savedExt[job.id];
+    if (postingId) {
+      await unsaveJob(profile.id, postingId);
+      setSavedExt((prev) => { const next = { ...prev }; delete next[job.id]; return next; });
+      setSavedJobs((prev) => prev.filter((s) => s.job_posting_id !== postingId));
+      showToast('Removed from saved.');
+    } else {
+      const res = await saveExternalJob(job.id);
+      setSavedExt((prev) => ({ ...prev, [job.id]: res.job_posting_id }));
+      const updated = await getSavedJobs(profile.id);
+      setSavedJobs(updated);
+      showToast('Job saved!');
+    }
+  }
+
+  async function handleExtApply(job: ExternalJob) {
+    if (!profile) return;
+    if (!resume) { showToast('Upload a resume first.', 'error'); return; }
+    try {
+      const res = await applyExternalJob(job.id);
+      showToast('Application queued.');
+      if (res.external_url) window.open(res.external_url, '_blank');
+    } catch (e: any) { showToast(e.message || 'Failed to apply.', 'error'); }
   }
 
   const filteredJobs = jobs.filter((job) => {
@@ -183,16 +211,21 @@ export function JobFeedPage() {
 
       {externalJobs.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2"><Globe className="h-4 w-4 text-violet-400" /> External Results</h3>
+          <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+            <Globe className="h-4 w-4 text-violet-400" /> External Results
+            {externalStale && <span className="badge bg-amber-500/20 text-amber-400 border border-amber-500/30">cached — sources unavailable</span>}
+          </h3>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {externalJobs.sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0)).map((job) => {
               const score = scores[job.id];
+              const saved = Boolean(savedExt[job.id]);
               return (
                 <GlassmorphicCard key={job.id} className="p-5 flex flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="font-semibold text-white truncate">{job.title}</h3>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                        {job.company && <span className="truncate">{job.company}</span>}
                         {job.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location}</span>}
                         {job.is_remote && <Badge color="green">Remote</Badge>}
                         <Badge color="teal">{job.external_source}</Badge>
@@ -202,8 +235,11 @@ export function JobFeedPage() {
                   </div>
                   <p className="mt-3 text-sm text-slate-400 line-clamp-3">{job.description}</p>
                   {job.requirements.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{job.requirements.slice(0, 4).map((r, i) => <span key={i} className="badge bg-slate-800 text-slate-300 border border-slate-700">{r}</span>)}</div>}
+                  {job.salary_min != null && <div className="mt-3 flex items-center gap-1 text-xs text-slate-400"><DollarSign className="h-3 w-3" />{job.salary_min.toLocaleString()} - {job.salary_max?.toLocaleString()} {job.salary_currency}</div>}
                   <div className="mt-4 flex items-center gap-2 border-t border-slate-700/50 pt-4">
-                    {job.external_url && <a href={job.external_url} target="_blank" rel="noopener noreferrer" className="btn-primary flex-1"><ExternalLink className="h-3.5 w-3.5" /> Apply</a>}
+                    <button onClick={() => handleExtApply(job)} disabled={!resume} className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"><Zap className="h-3.5 w-3.5" /> Apply</button>
+                    {job.external_url && <a href={job.external_url} target="_blank" rel="noopener noreferrer" className="btn-secondary" title="Go to original site"><ExternalLink className="h-3.5 w-3.5" /></a>}
+                    <button onClick={() => handleExtSave(job)} className={`btn ${saved ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}><Bookmark className={`h-3.5 w-3.5 ${saved ? 'fill-current' : ''}`} /></button>
                   </div>
                 </GlassmorphicCard>
               );

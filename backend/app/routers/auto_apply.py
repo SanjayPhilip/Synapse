@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,6 +8,9 @@ from app.database import get_db
 from app.models import AutoApplyLog, Resume, JobPosting, Profile
 from app.schemas.auto_apply import AutoApplyLogCreate, AutoApplyLogUpdate, AutoApplyLogResponse
 from app.middleware.auth import get_current_user
+from app.workers.auto_apply_tasks import process_auto_apply
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auto-apply", tags=["auto_apply"])
 
@@ -84,12 +87,14 @@ async def trigger_auto_apply(
     job = job_result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    if not job.external_url:
+        raise HTTPException(status_code=400, detail="No external URL available for auto-apply")
 
     log = AutoApplyLog(
         seeker_id=current_user.id,
         job_posting_id=data.job_posting_id,
         resume_id=data.resume_id,
-        status="in_progress",
+        status="queued",
         attempt_count=1,
     )
     log.job_posting = job
@@ -98,28 +103,13 @@ async def trigger_auto_apply(
     await db.refresh(log)
 
     try:
-        if job.external_url:
-            log.status = "success"
-            log.submitted_at = datetime.utcnow()
-        else:
-            log.status = "failed"
-            log.error_message = "No external URL available for auto-apply"
-    except Exception as e:
+        process_auto_apply.delay(str(log.id))
+        logger.info("queued auto-apply for log %s", log.id)
+    except Exception as exc:
         log.status = "failed"
-        log.error_message = str(e)
-
-    await db.flush()
-    await db.refresh(log)
-
-    from app.routers.applications import _notify
-    await _notify(
-        db,
-        current_user.id,
-        "Auto-apply complete",
-        f"Auto-apply for \"{job.title}\" finished with status: {log.status}.",
-        "application",
-        link="/app/applications",
-    )
+        log.error_message = f"Could not enqueue auto-apply: {exc}"
+        await db.flush()
+        await db.refresh(log)
 
     return _to_response(log)
 

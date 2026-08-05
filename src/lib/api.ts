@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert } from '@/types';
+import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert, ExternalJob, ExternalJobSearchResponse } from '@/types';
 
 // ============ RESUMES ============
 export async function getResumes(_userId: string): Promise<Resume[]> {
@@ -120,6 +120,22 @@ export async function saveJob(seekerId: string, jobPostingId: string, matchScore
 
 export async function unsaveJob(seekerId: string, jobPostingId: string): Promise<void> {
   await api.delete(`/api/v1/saved-jobs/${jobPostingId}`);
+}
+
+// ============ EXTERNAL JOBS ============
+export async function searchExternalJobs(q: string, location: string, limit = 20): Promise<ExternalJobSearchResponse> {
+  const params = new URLSearchParams({ q });
+  if (location) params.set('location', location);
+  params.set('limit', String(limit));
+  return api.get<ExternalJobSearchResponse>(`/api/v1/external-jobs/search?${params.toString()}`);
+}
+
+export async function saveExternalJob(jobId: string): Promise<{ detail: string; saved: boolean; job_posting_id: string }> {
+  return api.post(`/api/v1/external-jobs/${jobId}/save`);
+}
+
+export async function applyExternalJob(jobId: string): Promise<{ detail: string; job_posting_id: string; log_id: string; external_url: string | null }> {
+  return api.post(`/api/v1/external-jobs/${jobId}/apply`);
 }
 
 // ============ JOB ALERTS ============

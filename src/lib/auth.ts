@@ -75,3 +75,12 @@ export async function updateProfile(id: string, updates: Partial<Profile>): Prom
     return { error: e.message || 'Update failed' };
   }
 }
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ error: string | null }> {
+  try {
+    await api.post('/api/v1/auth/change-password', { current_password: currentPassword, new_password: newPassword });
+    return { error: null };
+  } catch (e: any) {
+    return { error: e.message || 'Failed to change password' };
+  }
+}

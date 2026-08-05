@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { User2, Building2, Save, Sun, Moon } from 'lucide-react';
+import { User2, Building2, Save, Sun, Moon, Lock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { updateProfile } from '@/lib/auth';
+import { updateProfile, changePassword } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
 import { Spinner } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
@@ -12,6 +12,12 @@ export function SettingsPage() {
   const [companyName, setCompanyName] = useState(profile?.company_name || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changing, setChanging] = useState(false);
+  const [changed, setChanged] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   const { theme, toggleTheme } = useTheme();
 
   async function handleSave() {
@@ -21,6 +27,18 @@ export function SettingsPage() {
     if (activeRole === 'employer') updates.company_name = companyName;
     await updateProfile(profile.id, updates);
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function handleChangePassword() {
+    setPasswordError('');
+    if (!currentPassword || !newPassword || !confirmPassword) { setPasswordError('All fields are required.'); return; }
+    if (newPassword.length < 8) { setPasswordError('New password must be at least 8 characters.'); return; }
+    if (newPassword !== confirmPassword) { setPasswordError('New passwords do not match.'); return; }
+    setChanging(true);
+    const res = await changePassword(currentPassword, newPassword);
+    setChanging(false);
+    if (res.error) { setPasswordError(res.error); }
+    else { setChanged(true); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setTimeout(() => setChanged(false), 2000); }
   }
 
   const inputClass = "w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500";
@@ -66,6 +84,31 @@ export function SettingsPage() {
               {saving ? <Spinner size={16} /> : <Save className="h-4 w-4" />} Save Changes
             </button>
             {saved && <span className="text-sm text-emerald-400">Saved successfully!</span>}
+          </div>
+        </div>
+      </GlassmorphicCard>
+
+      <GlassmorphicCard className="p-6">
+        <h3 className="text-base font-semibold text-white">Security</h3>
+        <div className="mt-6 space-y-4 max-w-md">
+          <div>
+            <label className="label text-slate-300">Current Password</label>
+            <input type="password" className={inputClass} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Enter current password" />
+          </div>
+          <div>
+            <label className="label text-slate-300">New Password</label>
+            <input type="password" className={inputClass} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 8 characters" />
+          </div>
+          <div>
+            <label className="label text-slate-300">Confirm New Password</label>
+            <input type="password" className={inputClass} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter new password" />
+          </div>
+          {passwordError && <p className="text-sm text-red-400">{passwordError}</p>}
+          <div className="flex items-center gap-3">
+            <button onClick={handleChangePassword} disabled={changing} className="btn-primary">
+              {changing ? <Spinner size={16} /> : <Lock className="h-4 w-4" />} Update Password
+            </button>
+            {changed && <span className="text-sm text-emerald-400">Password updated successfully.</span>}
           </div>
         </div>
       </GlassmorphicCard>
