@@ -213,7 +213,7 @@ This file is self-contained; start with PHASE 1.
 
 ### 15. Job feed upgrades
 - [x] Sort dropdown (score, date, salary)
-- [ ] Location filter + salary filter UI (salary exists hidden)
+- [x] Location filter + salary filter UI (salary exists hidden)
 - [ ] Remote toggle (exists as filter)
 - [x] Job detail view/modal
 - [ ] Employer topbar search

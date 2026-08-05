@@ -24,6 +24,7 @@ export function JobFeedPage() {
   const [filter, setFilter] = useState<'all' | 'remote' | 'full_time' | 'internship'>('all');
   const [salaryMin, setSalaryMin] = useState(0);
   const [showSalaryFilter, setShowSalaryFilter] = useState(false);
+  const [locationFilter, setLocationFilter] = useState('');
   const [externalJobs, setExternalJobs] = useState<ExternalJob[]>([]);
   const [searchingExternal, setSearchingExternal] = useState(false);
   const [extSearchQuery, setExtSearchQuery] = useState('');
@@ -127,7 +128,8 @@ export function JobFeedPage() {
     const matchesFilter = filter === 'all' || (filter === 'remote' && job.is_remote) || job.job_type === filter;
     const matchesCategory = selectedCategory === 'All' || job.category === selectedCategory;
     const matchesSalary = salaryMin === 0 || (job.salary_min !== null && job.salary_min >= salaryMin);
-    return matchesSearch && matchesFilter && matchesCategory && matchesSalary;
+    const matchesLocation = !locationFilter || (job.location && job.location.toLowerCase().includes(locationFilter.toLowerCase()));
+    return matchesSearch && matchesFilter && matchesCategory && matchesSalary && matchesLocation;
   }).sort((a, b) => {
     if (sort === 'match') return (scores[b.id] || 0) - (scores[a.id] || 0);
     if (sort === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -182,6 +184,10 @@ export function JobFeedPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search jobs by title or keyword..." className={`${inputClass} pl-10`} />
+          </div>
+          <div className="relative sm:w-48">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <input value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} placeholder="Location..." className={`${inputClass} pl-9`} />
           </div>
           <div className="flex gap-2 flex-wrap">
             <select value={sort} onChange={(e) => setSort(e.target.value as any)} className="btn bg-slate-800 text-slate-300 border border-slate-700 text-xs">
