@@ -33,6 +33,7 @@ export function JobFeedPage() {
   const [savedExt, setSavedExt] = useState<Record<string, string>>({});
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedJob, setSelectedJob] = useState<JobPosting | ExternalJob | null>(null);
+  const [sort, setSort] = useState<'match' | 'newest' | 'salary'>('match');
   const CATEGORIES = ['All', 'Software Engineering', 'Data Science & AI', 'Data Analytics', 'Business & MBA', 'Cloud & DevOps', 'Finance & Accounting', 'Marketing & Sales'];
 
   useEffect(() => {
@@ -127,7 +128,12 @@ export function JobFeedPage() {
     const matchesCategory = selectedCategory === 'All' || job.category === selectedCategory;
     const matchesSalary = salaryMin === 0 || (job.salary_min !== null && job.salary_min >= salaryMin);
     return matchesSearch && matchesFilter && matchesCategory && matchesSalary;
-  }).sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0));
+  }).sort((a, b) => {
+    if (sort === 'match') return (scores[b.id] || 0) - (scores[a.id] || 0);
+    if (sort === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (sort === 'salary') return ((b.salary_max || b.salary_min || 0) - (a.salary_max || a.salary_min || 0));
+    return 0;
+  });
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size={32} /></div>;
 
@@ -178,6 +184,11 @@ export function JobFeedPage() {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search jobs by title or keyword..." className={`${inputClass} pl-10`} />
           </div>
           <div className="flex gap-2 flex-wrap">
+            <select value={sort} onChange={(e) => setSort(e.target.value as any)} className="btn bg-slate-800 text-slate-300 border border-slate-700 text-xs">
+              <option value="match">Sort: Match</option>
+              <option value="newest">Sort: Newest</option>
+              <option value="salary">Sort: Salary</option>
+            </select>
             <button onClick={() => setShowSalaryFilter(!showSalaryFilter)} className={`btn ${showSalaryFilter ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}><SlidersHorizontal className="h-3.5 w-3.5" /> Salary</button>
             {(['all', 'remote', 'full_time', 'internship'] as const).map((f) => (
               <button key={f} onClick={() => setFilter(f)} className={`btn ${filter === f ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>

@@ -212,7 +212,7 @@ This file is self-contained; start with PHASE 1.
 - [ ] Frontend: infinite scroll on job feed; pagination on tables
 
 ### 15. Job feed upgrades
-- [ ] Sort dropdown (score, date, salary)
+- [x] Sort dropdown (score, date, salary)
 - [ ] Location filter + salary filter UI (salary exists hidden)
 - [ ] Remote toggle (exists as filter)
 - [x] Job detail view/modal
