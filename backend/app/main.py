@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
+from app.middleware.observability import RequestContextMiddleware, register_error_handlers
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.routers import auth, resumes, jobs, applications, matching, chat, saved_jobs, rewrites, auto_apply, admin, notifications, ws, job_alerts, external_jobs, profile, security, analytics
 from app.database import get_db
 from app.workers import celery_app
@@ -39,6 +41,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Last added = outermost: rate limit + request context wrap everything.
+app.add_middleware(RateLimitMiddleware, max_requests=300, window_seconds=60)
+app.add_middleware(RequestContextMiddleware)
+
+register_error_handlers(app)
 
 app.mount("/storage", StaticFiles(directory=STORAGE_DIR), name="storage")
 

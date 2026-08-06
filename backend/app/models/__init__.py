@@ -45,7 +45,7 @@ class Profile(Base):
     id = Column(GUID, primary_key=True, default=uuid.uuid4)
     email = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
-    role = Column(String, nullable=False, default="seeker")
+    role = Column(String, nullable=False, default="seeker", index=True)
     company_name = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
     bio = Column(Text, nullable=True)

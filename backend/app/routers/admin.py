@@ -108,14 +108,19 @@ async def list_admin_jobs(
     db: AsyncSession = Depends(get_db),
     current_user: Profile = Depends(require_role("admin")),
 ):
-    base = select(JobPosting, Profile).join(Profile, JobPosting.employer_id == Profile.id).order_by(desc(JobPosting.created_at))
+    base = (
+        select(JobPosting, Profile, func.count(Application.id))
+        .join(Profile, JobPosting.employer_id == Profile.id)
+        .outerjoin(Application, Application.job_posting_id == JobPosting.id)
+        .group_by(JobPosting.id, Profile.id)
+        .order_by(desc(JobPosting.created_at))
+    )
     total = await db.scalar(select(func.count()).select_from(select(JobPosting).subquery())) or 0
     result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
     rows = result.all()
 
     jobs_data = []
-    for job, employer in rows:
-        app_count = await db.scalar(select(func.count(Application.id)).where(Application.job_posting_id == job.id))
+    for job, employer, app_count in rows:
         jobs_data.append({
             "id": str(job.id),
             "title": job.title,

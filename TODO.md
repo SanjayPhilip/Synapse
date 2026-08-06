@@ -266,19 +266,19 @@ This file is self-contained; start with PHASE 1.
 ## PHASE 8 — Hardening & Production Readiness (MEDIUM/HIGH)
 
 ### 22. Backend hardening
-- [ ] Rate limiting across all endpoints (exists on auth — extend)
-- [ ] Input validation + payload size caps
-- [ ] CORS restrict to production domain
-- [ ] SECRET_KEY / JWT env-driven, no defaults
-- [ ] HTTPS-only + secure cookie option
-- [ ] Structured logging + request IDs
-- [ ] Error responses sanitized (no stack traces)
-- [ ] SQLAlchemy: query N+1 audit, indexes on hot columns
+- [x] Rate limiting across all endpoints (exists on auth — extend) — global `RateLimitMiddleware` (300 req/min/IP) + per-route limits kept
+- [x] Input validation + payload size caps — Pydantic everywhere; resume upload capped at 5MB (pdf/docx/txt only)
+- [x] CORS restrict to production domain — env-driven `CORS_ORIGINS`
+- [x] SECRET_KEY / JWT env-driven, no defaults — `get_settings()` raises on default secret
+- [x] HTTPS-only + secure cookie option — bearer tokens only, no cookies; n/a
+- [x] Structured logging + request IDs — `RequestContextMiddleware` (X-Request-ID + access log)
+- [x] Error responses sanitized (no stack traces) — global Exception handler → generic 500 + request_id
+- [x] SQLAlchemy: query N+1 audit, indexes on hot columns — admin jobs N+1 fixed (grouped count); `profiles.role` index added (migration d9e1f2a3b4c5)
 
 ### 23. Background workers & infra
-- [ ] Worker runner for scheduler + auto-apply (separate process)
-- [ ] Job queue with retries + dead-letter
-- [ ] Graceful shutdown
+- [ ] Worker runner for scheduler + auto-apply (separate process) — DEFERRED (scheduler runs in-process via `start_scheduler`)
+- [ ] Job queue with retries + dead-letter — DEFERRED
+- [ ] Graceful shutdown — DEFERRED
 
 ### 24. Database & storage
 - [x] Migration tool (Alembic) replacing ad-hoc `migrate.py`
