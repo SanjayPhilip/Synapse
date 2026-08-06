@@ -85,6 +85,10 @@ export async function deleteJobPosting(id: string): Promise<void> {
   return api.delete(`/api/v1/jobs/${id}`);
 }
 
+export async function repostJobPosting(id: string): Promise<JobPosting> {
+  return api.post<JobPosting>(`/api/v1/jobs/${id}/repost`);
+}
+
 // ============ APPLICATIONS ============
 export async function getApplications(_seekerId: string, page = 1, pageSize = 20): Promise<Application[]> {
   const res = await api.get<Paginated<Application> | Application[]>(`/api/v1/applications?page=${page}&page_size=${pageSize}`);
@@ -239,6 +243,61 @@ export async function sendChatMessage(sessionId: string, content: string): Promi
 
 export async function getChatMessages(sessionId: string): Promise<{ role: string; content: string; module_routed: string | null }[]> {
   return api.get(`/api/v1/chat/sessions/${sessionId}/messages`);
+}
+
+// ============ ANALYTICS ============
+export interface AnalyticsSeriesPoint { date: string; count: number }
+export interface EmployerAnalytics {
+  volume_over_time: AnalyticsSeriesPoint[];
+  funnel: Record<string, number>;
+  score_distribution: { bucket: string; count: number }[];
+  time_to_fill_days: number | null;
+  avg_applicants_per_posting: number;
+  per_posting: { title: string; count: number; status: string }[];
+}
+export interface SeekerAnalytics {
+  volume_over_time: AnalyticsSeriesPoint[];
+  outcomes: Record<string, number>;
+}
+export interface AdminAnalytics {
+  growth: { week: string; users: number; jobs: number; applications: number }[];
+}
+
+export function getEmployerAnalytics(days = 30): Promise<EmployerAnalytics> {
+  return api.get<EmployerAnalytics>(`/api/v1/analytics/employer?days=${days}`);
+}
+
+export function getSeekerAnalytics(days = 30): Promise<SeekerAnalytics> {
+  return api.get<SeekerAnalytics>(`/api/v1/analytics/seeker?days=${days}`);
+}
+
+export function getAdminAnalytics(weeks = 8): Promise<AdminAnalytics> {
+  return api.get(`/api/v1/analytics/admin?weeks=${weeks}`);
+}
+
+// ============ ADMIN ============
+export interface AdminHealth {
+  healthy: boolean;
+  checks: {
+    database: boolean;
+    storage_writable: boolean;
+    secret_key_configured: boolean;
+    gemini_api_key_configured: boolean;
+  };
+}
+
+export async function getAdminHealth(): Promise<AdminHealth> {
+  return api.get('/api/v1/admin/health');
+}
+
+export async function broadcastNotification(title: string, message: string, link?: string): Promise<{ message: string }> {
+  const q = new URLSearchParams({ title, message });
+  if (link) q.set('link', link);
+  return api.post(`/api/v1/admin/notifications/broadcast?${q.toString()}`, {});
+}
+
+export async function moderateJob(id: string, moderationStatus: string): Promise<{ message: string }> {
+  return api.put(`/api/v1/admin/jobs/${id}/moderation?moderation_status=${encodeURIComponent(moderationStatus)}`, {});
 }
 
 // ============ NOTIFICATIONS ============

@@ -93,6 +93,7 @@ export interface Application {
   match_score: number | null;
   applied_via: AppliedVia;
   employer_notes?: string | null;
+  interview_link?: string | null;
   created_at: string;
   updated_at: string;
   job_posting?: JobPosting;

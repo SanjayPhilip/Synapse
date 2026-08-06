@@ -66,6 +66,7 @@ def _to_response(app: Application) -> ApplicationResponse:
         "match_score": app.match_score,
         "applied_via": app.applied_via,
         "employer_notes": app.employer_notes,
+        "interview_link": app.interview_link,
         "created_at": app.created_at,
         "updated_at": app.updated_at,
     }

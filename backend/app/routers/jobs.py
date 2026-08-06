@@ -64,6 +64,10 @@ async def list_jobs(
         query = query.where(
             (JobPosting.employer_id == current_user.id) | (JobPosting.status == "active")
         )
+    # non-owners only see moderation-approved postings
+    query = query.where(
+        (JobPosting.employer_id == current_user.id) | (JobPosting.moderation_status == "approved")
+    )
     if category and category != "All":
         query = query.where(JobPosting.category == category)
     if employer_id:
@@ -99,7 +103,7 @@ async def create_job(
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    job = JobPosting(employer_id=current_user.id, **data.model_dump())
+    job = JobPosting(employer_id=current_user.id, moderation_status="pending", **data.model_dump())
     db.add(job)
     await db.flush()
     await db.refresh(job)
@@ -127,6 +131,47 @@ async def update_job(
     await db.refresh(job)
     await recompute_scores_for_job(db, job.id)
     return job
+
+
+@router.post("/{job_id}/repost")
+async def repost_job(
+    job_id: uuid.UUID,
+    current_user: Profile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(JobPosting).where(JobPosting.id == job_id, JobPosting.employer_id == current_user.id)
+    )
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or not authorized")
+    from datetime import datetime
+    clone = JobPosting(
+        employer_id=current_user.id,
+        title=job.title,
+        description=job.description,
+        requirements=job.requirements or [],
+        responsibilities=job.responsibilities or [],
+        location=job.location,
+        is_remote=job.is_remote,
+        salary_min=job.salary_min,
+        salary_max=job.salary_max,
+        salary_currency=job.salary_currency,
+        job_type=job.job_type,
+        category=job.category,
+        auto_screening_enabled=job.auto_screening_enabled,
+        auto_approve_threshold=job.auto_approve_threshold,
+        auto_reject_threshold=job.auto_reject_threshold,
+        status="active",
+        moderation_status="pending",
+        created_at=datetime.utcnow(),
+    )
+    db.add(clone)
+    await db.flush()
+    await db.refresh(clone)
+    await _match_job_alerts(db, clone)
+    await recompute_scores_for_job(db, clone.id)
+    return clone
 
 
 @router.delete("/{job_id}")

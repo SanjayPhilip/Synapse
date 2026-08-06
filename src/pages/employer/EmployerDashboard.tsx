@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getJobPostings, getApplicationsForJob } from '@/lib/api';
 import { seedSampleJobs } from '@/lib/seed';
 import type { JobPosting } from '@/types';
-import { Spinner } from '@/components/ui';
+import { Spinner, EmptyState } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
 
 export function EmployerDashboard() {
@@ -86,7 +86,8 @@ export function EmployerDashboard() {
         </div>
         <div className="mt-4 space-y-3">
           {jobs.length === 0 ? (
-            <p className="text-sm text-slate-400 py-8 text-center">No job postings yet. Create your first posting to start receiving applications.</p>
+            <EmptyState icon={<Briefcase className="h-12 w-12" />} title="No job postings yet" description="Create your first posting to start receiving applications."
+              action={<Link to="/app/postings" className="btn-primary text-xs"><Briefcase className="h-3.5 w-3.5" /> Create posting</Link>} />
           ) : (
             jobs.slice(0, 5).map((job) => (
               <Link key={job.id} to="/app/applicants" className="flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 transition-all hover:border-violet-500/30">

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, or_
 from app.database import get_db
-from app.models import Profile, JobPosting, Resume, Application, MatchScore
+from app.models import Profile, JobPosting, Resume, Application, MatchScore, Notification
 from app.middleware.auth import require_role
 from app.pagination import make_page
 
@@ -128,10 +128,29 @@ async def list_admin_jobs(
             "salary_max": job.salary_max,
             "job_type": job.job_type,
             "status": job.status,
+            "moderation_status": job.moderation_status,
             "applications_count": app_count or 0,
             "created_at": job.created_at.isoformat() if job.created_at else None,
         })
     return make_page(jobs_data, total, page, page_size)
+
+
+@router.put("/jobs/{job_id}/moderation")
+async def moderate_job(
+    job_id: str,
+    moderation_status: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: Profile = Depends(require_role("admin")),
+):
+    if moderation_status not in ("approved", "rejected", "flagged", "pending"):
+        raise HTTPException(status_code=400, detail="Invalid moderation status")
+    result = await db.execute(select(JobPosting).where(JobPosting.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job posting not found")
+    job.moderation_status = moderation_status
+    await db.commit()
+    return {"message": "Job moderation updated", "id": job_id, "moderation_status": job.moderation_status}
 
 
 @router.delete("/jobs/{job_id}")
@@ -150,20 +169,54 @@ async def delete_admin_job(
     return {"message": "Job posting deleted by admin", "id": job_id}
 
 
+@router.post("/notifications/broadcast")
+async def broadcast_notification(
+    title: str = Query(...),
+    message: str = Query(default=""),
+    link: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: Profile = Depends(require_role("admin")),
+):
+    result = await db.execute(select(Profile.id).where(Profile.is_active == True))
+    user_ids = result.scalars().all()
+    if not user_ids:
+        raise HTTPException(status_code=404, detail="No active users to notify")
+    for uid in user_ids:
+        db.add(Notification(user_id=uid, title=title, message=message, link=link, notification_type="broadcast"))
+    await db.commit()
+    return {"message": f"Broadcast sent to {len(user_ids)} users"}
+
+
 @router.get("/activity")
 async def get_recent_activity(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    status_filter: str | None = Query(default=None, alias="status"),
+    seeker_name: str | None = Query(default=None),
+    days: int | None = Query(default=None, ge=1, le=365),
     db: AsyncSession = Depends(get_db),
     current_user: Profile = Depends(require_role("admin")),
 ):
+    from datetime import datetime, timedelta
+    conditions = []
+    if status_filter:
+        conditions.append(Application.status == status_filter)
+    if seeker_name:
+        conditions.append(Profile.full_name.ilike(f"%{seeker_name}%"))
+    if days:
+        conditions.append(Application.created_at >= datetime.utcnow() - timedelta(days=days))
+
     base = (
         select(Application, Profile, JobPosting)
         .join(Profile, Application.seeker_id == Profile.id)
         .join(JobPosting, Application.job_posting_id == JobPosting.id)
         .order_by(desc(Application.created_at))
     )
-    total = await db.scalar(select(func.count()).select_from(select(Application).subquery())) or 0
+    count_query = select(func.count()).select_from(Application)
+    for c in conditions:
+        base = base.where(c)
+        count_query = count_query.where(c)
+    total = await db.scalar(count_query) or 0
     result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
     rows = result.all()
 
@@ -179,3 +232,27 @@ async def get_recent_activity(
             "created_at": app.created_at.isoformat() if app.created_at else None,
         })
     return make_page(activities, total, page, page_size)
+
+
+@router.get("/health")
+async def system_health(
+    db: AsyncSession = Depends(get_db),
+    current_user: Profile = Depends(require_role("admin")),
+):
+    import os
+    from app.config import get_settings
+    settings = get_settings()
+    storage_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage"))
+    checks = {
+        "database": True,
+        "storage_writable": os.access(storage_dir, os.W_OK),
+        "secret_key_configured": bool(os.environ.get("SECRET_KEY") or (getattr(settings, "SECRET_KEY", None) and "migrate-session" not in str(getattr(settings, "SECRET_KEY", "")))),
+        "gemini_api_key_configured": bool(os.environ.get("GEMINI_API_KEY") or getattr(settings, "GEMINI_API_KEY", None)),
+    }
+    # verify DB reachable with a trivial query
+    try:
+        await db.execute(select(func.count(Profile.id)))
+    except Exception:
+        checks["database"] = False
+    healthy = all(checks.values())
+    return {"healthy": healthy, "checks": checks}

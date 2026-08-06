@@ -132,6 +132,7 @@ class JobPosting(Base):
     auto_approve_threshold = Column(Integer, nullable=False, default=85)
     auto_reject_threshold = Column(Integer, nullable=False, default=50)
     status = Column(String, nullable=False, default="active", index=True)
+    moderation_status = Column(String, nullable=False, default="approved", index=True)
     external_source = Column(String, nullable=True)
     external_id = Column(String, nullable=True)
     external_url = Column(String, nullable=True)
@@ -158,6 +159,7 @@ class Application(Base):
     match_score = Column(Numeric(5, 2), nullable=True)
     applied_via = Column(String, nullable=False, default="platform")
     employer_notes = Column(Text, nullable=True)
+    interview_link = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 

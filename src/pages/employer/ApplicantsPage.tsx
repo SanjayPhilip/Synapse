@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Users, Star, CheckCircle2, XCircle, ChevronRight, Lightbulb, Download } from 'lucide-react';
+import { Users, Star, CheckCircle2, XCircle, ChevronRight, Lightbulb, Download, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { getJobPostings, getApplicationsForJob, updateApplication, getGapExplanation, getApplicationHistory } from '@/lib/api';
 import { api } from '@/lib/api-client';
 import { computeMatchScore } from '@/lib/matching';
@@ -17,6 +18,8 @@ interface ApplicantWithDetails extends Application {
 
 export function ApplicantsPage() {
   const { profile } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [applicantSearch, setApplicantSearch] = useState(searchParams.get('q') || '');
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [selectedJobId, setSelectedJobId] = useState('');
   const [applicants, setApplicants] = useState<ApplicantWithDetails[]>([]);
@@ -75,11 +78,11 @@ export function ApplicantsPage() {
   }, [selectedApplicant]);
 
   function exportApplicantsCSV() {
-    if (applicants.length === 0) { alert('No applicants to export.'); return; }
+    if (filteredApplicants.length === 0) { alert('No applicants to export.'); return; }
     const job = jobs.find((j) => j.id === selectedJobId);
     const title = job ? job.title : 'Job';
     const headers = ['Candidate Name', 'Email', 'Applied Date', 'Status', 'Match Score (%)', 'Matched Skills', 'Missing Skills'];
-    const rows = applicants.map((a) => {
+    const rows = filteredApplicants.map((a) => {
       return [a.profile?.full_name || 'Applicant', a.profile?.email || '', new Date(a.created_at).toLocaleDateString(), a.status, a.score ? a.score.toFixed(1) : 'N/A', a.gapReport?.matched_skills?.join('; ') || '', a.gapReport?.missing_skills?.join('; ') || ''].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',');
     });
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
@@ -95,6 +98,17 @@ export function ApplicantsPage() {
   }
 
   if (loading && !applicants.length) return <div className="flex justify-center py-20"><Spinner size={32} /></div>;
+
+  const q = applicantSearch.trim().toLowerCase();
+  const filteredApplicants = q
+    ? applicants.filter((a) => {
+        const name = a.profile?.full_name?.toLowerCase() || '';
+        const email = a.profile?.email?.toLowerCase() || '';
+        const skills = a.resume?.skills?.join(' ')?.toLowerCase() || '';
+        const jobTitle = (a as any).job_posting?.title?.toLowerCase() || '';
+        return name.includes(q) || email.includes(q) || skills.includes(q) || jobTitle.includes(q);
+      })
+    : applicants;
 
   const inputClass = "w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500";
   const scoreColor = (s: number) => s >= 75 ? 'text-emerald-400' : s >= 50 ? 'text-amber-400' : 'text-red-400';
@@ -122,15 +136,24 @@ export function ApplicantsPage() {
         </div>
       )}
 
+      {applicants.length > 0 && (
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <input value={applicantSearch} onChange={(e) => setApplicantSearch(e.target.value)} placeholder="Search by name, email, or skill..." className={`${inputClass} pl-10`} />
+        </div>
+      )}
+
       {jobs.length === 0 ? (
         <EmptyState icon={<Users className="h-12 w-12" />} title="No job postings" description="Create a posting first to receive applications." />
       ) : applicants.length === 0 ? (
         <EmptyState icon={<Users className="h-12 w-12" />} title="No applicants yet" description="No one has applied to this posting yet." />
+      ) : filteredApplicants.length === 0 ? (
+        <EmptyState icon={<Search className="h-12 w-12" />} title="No matching applicants" description="Try a different search term." />
       ) : (
         <>
           {(() => {
-            const statusCounts = applicants.reduce<Record<string, number>>((acc, a) => { acc[a.status] = (acc[a.status] || 0) + 1; return acc; }, {});
-            const avg = Math.round(applicants.reduce((s, a) => s + (a.score || 0), 0) / applicants.length);
+            const statusCounts = filteredApplicants.reduce<Record<string, number>>((acc, a) => { acc[a.status] = (acc[a.status] || 0) + 1; return acc; }, {});
+            const avg = Math.round(filteredApplicants.reduce((s, a) => s + (a.score || 0), 0) / filteredApplicants.length);
             const statusMeta: Record<string, { label: string; dot: string; text: string }> = {
               applied: { label: 'Applied', dot: 'bg-blue-500', text: 'text-blue-400' },
               shortlisted: { label: 'Shortlisted', dot: 'bg-amber-500', text: 'text-amber-400' },
@@ -141,7 +164,7 @@ export function ApplicantsPage() {
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 <GlassmorphicCard className="p-4">
                   <div className="text-xs font-semibold text-slate-500 uppercase">Applicants</div>
-                  <div className="mt-1 text-2xl font-bold text-white">{applicants.length}</div>
+                  <div className="mt-1 text-2xl font-bold text-white">{filteredApplicants.length}</div>
                 </GlassmorphicCard>
                 <GlassmorphicCard className="p-4">
                   <div className="text-xs font-semibold text-slate-500 uppercase">Avg Match</div>
@@ -171,7 +194,7 @@ export function ApplicantsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
-                {applicants.map((app) => (
+                {filteredApplicants.map((app) => (
                   <tr key={app.id} className="hover:bg-slate-800/30 cursor-pointer transition-colors" onClick={() => setSelectedApplicant(app)}>
                     <td className="px-4 py-3">
                       <div className="font-medium text-white">{app.profile?.full_name || 'Unknown'}</div>

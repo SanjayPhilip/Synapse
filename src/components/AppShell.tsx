@@ -4,6 +4,7 @@ import { Brain, LayoutDashboard, FileText, Target, Briefcase, Bookmark, Settings
 import { useAuth } from '@/context/AuthContext';
 import { ChatAssistant } from '@/components/ChatAssistant';
 import { NotificationBell } from '@/components/NotificationBell';
+import { OnboardingBanner } from '@/components/OnboardingBanner';
 import { api } from '@/lib/api-client';
 import { useTheme } from '@/lib/theme';
 
@@ -104,19 +105,20 @@ export function AppShell({ children, activeModule }: { children: ReactNode; acti
         {/* Desktop header */}
         <header className="sticky top-0 z-20 hidden items-center justify-between gap-2 border-b border-slate-800/50 bg-slate-900/80 px-6 py-3 backdrop-blur-xl lg:flex">
           <div className="flex-1">
-            {!isAdmin && !isEmployer && (
+            {!isAdmin && (
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   const q = (e.currentTarget.elements.namedItem('q') as HTMLInputElement)?.value.trim();
-                  navigate(q ? `/app/jobs?q=${encodeURIComponent(q)}` : '/app/jobs');
+                  const target = isEmployer ? '/app/applicants' : '/app/jobs';
+                  navigate(q ? `${target}?q=${encodeURIComponent(q)}` : target);
                 }}
                 className="max-w-md"
               >
                 <input
                   name="q"
                   type="text"
-                  placeholder="Search jobs..."
+                  placeholder={isEmployer ? 'Search applicants...' : 'Search jobs...'}
                   className="w-full rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 />
               </form>
@@ -150,6 +152,7 @@ export function AppShell({ children, activeModule }: { children: ReactNode; acti
         </header>
 
         <main className="p-4 lg:p-8">
+          <OnboardingBanner />
           {children}
         </main>
       </div>

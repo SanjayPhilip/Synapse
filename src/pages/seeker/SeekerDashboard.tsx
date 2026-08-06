@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Target, Briefcase, Bookmark, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getCurrentResume, getJobPostings, getApplications, getSavedJobs } from '@/lib/api';
+import { getCurrentResume, getJobPostings, getApplications, getSavedJobs, getSeekerAnalytics } from '@/lib/api';
 import type { Resume, JobPosting, Application, SavedJob } from '@/types';
-import { ScoreRing } from '@/components/ui';
+import { ScoreRing, EmptyState } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 export function SeekerDashboard() {
   const { profile } = useAuth();
@@ -14,6 +15,14 @@ export function SeekerDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [seekerAnalytics, setSeekerAnalytics] = useState<{ volume_over_time: { date: string; count: number }[]; outcomes: Record<string, number> } | null>(null);
+
+  useEffect(() => {
+    if (!profile) return;
+    (async () => {
+      try { setSeekerAnalytics(await getSeekerAnalytics(30)); } catch { /* optional */ }
+    })();
+  }, [profile]);
 
   useEffect(() => {
     if (!profile) return;
@@ -158,12 +167,48 @@ export function SeekerDashboard() {
                 ))}
               </div>
             ) : (
-              <p className="mt-4 text-sm text-slate-400">No applications yet. Browse the job feed to get started.</p>
+              <EmptyState icon={<Briefcase className="h-8 w-8" />} title="No applications yet" description="Browse the job feed to get started."
+                action={<Link to="/app/jobs" className="btn-primary text-xs"><Briefcase className="h-3.5 w-3.5" /> Browse jobs</Link>} />
             )}
             <Link to="/app/applications" className="btn-ghost mt-4 w-full">View All</Link>
           </GlassmorphicCard>
         </div>
       </div>
+
+      {/* Application activity */}
+      {seekerAnalytics && seekerAnalytics.volume_over_time.length > 0 && (
+        <GlassmorphicCard className="p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-base font-semibold text-white">Application Activity (30d)</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(seekerAnalytics.outcomes).map(([status, count]) => {
+                const color = status === 'hired' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : status === 'shortlisted' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                  : status === 'rejected' ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                  : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+                return <span key={status} className={`badge capitalize ${color}`}>{status}: {count}</span>;
+              })}
+            </div>
+          </div>
+          <div className="mt-4 h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={seekerAnalytics.volume_over_time} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="seekerVol" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(d) => d.slice(5)} />
+                <YAxis tick={{ fill: '#64748b', fontSize: 11 }} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} />
+                <Area type="monotone" dataKey="count" stroke="#06b6d4" strokeWidth={2} fill="url(#seekerVol)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </GlassmorphicCard>
+      )}
 
       {/* Recommended jobs */}
       <GlassmorphicCard className="p-6">
@@ -182,9 +227,9 @@ export function SeekerDashboard() {
             </Link>
           ))}
           {jobs.length === 0 && (
-            <div className="col-span-full py-8 text-center text-slate-500">
-              <Sparkles className="h-8 w-8 mx-auto mb-2 text-slate-700" />
-              No jobs yet. Check back soon!
+            <div className="col-span-full">
+              <EmptyState icon={<Sparkles className="h-10 w-10" />} title="No jobs yet" description="Check back soon — new opportunities are added regularly."
+                action={<Link to="/app/jobs" className="btn-secondary text-xs">Browse job feed</Link>} />
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
-from app.routers import auth, resumes, jobs, applications, matching, chat, saved_jobs, rewrites, auto_apply, admin, notifications, ws, job_alerts, external_jobs, profile, security
+from app.routers import auth, resumes, jobs, applications, matching, chat, saved_jobs, rewrites, auto_apply, admin, notifications, ws, job_alerts, external_jobs, profile, security, analytics
 from app.database import get_db
 from app.workers import celery_app
 from app.services.job_alert_scheduler import start_scheduler, stop_scheduler
@@ -57,6 +57,7 @@ app.include_router(ws.router)
 app.include_router(job_alerts.router)
 app.include_router(external_jobs.router)
 app.include_router(profile.router)
+app.include_router(analytics.router)
 
 app.include_router(security.router)
 

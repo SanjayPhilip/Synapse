@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import {
   Users, Briefcase, FileText, BarChart3, Activity, Shield,
   Trash2, ToggleLeft, ToggleRight, AlertCircle, CheckCircle2,
-  TrendingUp, Clock, ArrowUp, Search
+  TrendingUp, Clock, ArrowUp, Search, Megaphone, HeartPulse, Send, Flag, Ban
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
+import { getAdminAnalytics, getAdminHealth, broadcastNotification, moderateJob } from '@/lib/api';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 interface AdminStats {
   total_users: number;
@@ -38,6 +40,7 @@ interface AdminJob {
   is_remote: boolean;
   job_type: string | null;
   status: string;
+  moderation_status: string;
   applications_count: number;
   created_at: string | null;
 }
@@ -52,7 +55,7 @@ interface RecentActivity {
   created_at: string | null;
 }
 
-type AdminTab = 'overview' | 'users' | 'jobs' | 'activity';
+type AdminTab = 'overview' | 'users' | 'jobs' | 'activity' | 'system';
 
 export function AdminDashboard() {
   const [tab, setTab] = useState<AdminTab>('overview');
@@ -65,8 +68,61 @@ export function AdminDashboard() {
   const [actionMsg, setActionMsg] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [jobSearch, setJobSearch] = useState('');
+  const [growth, setGrowth] = useState<{ week: string; users: number; jobs: number; applications: number }[]>([]);
+  const [health, setHealth] = useState<{ healthy: boolean; checks: Record<string, boolean> } | null>(null);
+  const [activityStatus, setActivityStatus] = useState('');
+  const [activityName, setActivityName] = useState('');
+  const [activityDays, setActivityDays] = useState('');
+  const [bcTitle, setBcTitle] = useState('');
+  const [bcMessage, setBcMessage] = useState('');
+  const [bcLink, setBcLink] = useState('');
+  const [broadcasting, setBroadcasting] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
+
+  useEffect(() => {
+    (async () => {
+      try { setGrowth((await getAdminAnalytics(8)).growth); } catch { /* analytics optional */ }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try { setHealth(await getAdminHealth()); } catch { /* health optional */ }
+    })();
+  }, []);
+
+  async function loadActivity() {
+    try {
+      const q = new URLSearchParams();
+      if (activityStatus) q.set('status', activityStatus);
+      if (activityName) q.set('seeker_name', activityName);
+      if (activityDays) q.set('days', activityDays);
+      const r = await api.get<{ items: RecentActivity[] }>(`/api/v1/admin/activity?${q.toString()}`);
+      setActivity(r.items);
+    } catch (e: any) { setError(e.message || 'Failed to load activity'); }
+  }
+
+  async function moderateJobHandler(job: AdminJob, moderationStatus: string) {
+    try {
+      await moderateJob(job.id, moderationStatus);
+      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, moderation_status: moderationStatus } : j));
+      setActionMsg(`Job "${job.title}" ${moderationStatus}.`);
+      setTimeout(() => setActionMsg(''), 3000);
+    } catch (e: any) { setError(e.message); }
+  }
+
+  async function broadcastHandler() {
+    if (!bcTitle.trim()) { setError('Title is required'); return; }
+    setBroadcasting(true);
+    setError('');
+    try {
+      const r = await broadcastNotification(bcTitle.trim(), bcMessage.trim(), bcLink.trim() || undefined);
+      setActionMsg(r.message);
+      setTimeout(() => setActionMsg(''), 3000);
+      setBcTitle(''); setBcMessage(''); setBcLink('');
+    } catch (e: any) { setError(e.message); } finally { setBroadcasting(false); }
+  }
 
   async function loadAll() {
     setLoading(true);
@@ -212,6 +268,7 @@ export function AdminDashboard() {
             { id: 'users' as AdminTab, label: `Users (${users.length})`, icon: Users },
             { id: 'jobs' as AdminTab, label: `Jobs (${jobs.length})`, icon: Briefcase },
             { id: 'activity' as AdminTab, label: 'Activity', icon: Activity },
+            { id: 'system' as AdminTab, label: 'System', icon: HeartPulse },
           ]).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
@@ -269,6 +326,40 @@ export function AdminDashboard() {
               ))}
             </div>
           </GlassmorphicCard>
+
+          {growth.length > 0 && (
+            <GlassmorphicCard className="p-6 xl:col-span-2">
+              <h3 className="text-sm font-semibold text-white mb-4">Platform Growth (weekly)</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={growth} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gUsers" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gJobs" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gApps" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="week" tick={{ fill: '#64748b', fontSize: 11 }} />
+                    <YAxis tick={{ fill: '#64748b', fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Area type="monotone" dataKey="users" stroke="#06b6d4" strokeWidth={2} fill="url(#gUsers)" />
+                    <Area type="monotone" dataKey="jobs" stroke="#8b5cf6" strokeWidth={2} fill="url(#gJobs)" />
+                    <Area type="monotone" dataKey="applications" stroke="#10b981" strokeWidth={2} fill="url(#gApps)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </GlassmorphicCard>
+          )}
 
           <GlassmorphicCard className="p-6 xl:col-span-2">
             <div className="flex items-center justify-between mb-4">
@@ -396,7 +487,7 @@ export function AdminDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-700/50">
-                  {['Job Title', 'Employer', 'Location', 'Type', 'Status', 'Apps', 'Actions'].map(h => (
+                  {['Job Title', 'Employer', 'Location', 'Type', 'Status', 'Moderation', 'Apps', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{h}</th>
                   ))}
                 </tr>
@@ -409,6 +500,27 @@ export function AdminDashboard() {
                     <td className="px-4 py-3 text-slate-300">{j.location || '—'}{j.is_remote && <span className="ml-1 text-xs text-cyan-400">(Remote)</span>}</td>
                     <td className="px-4 py-3 capitalize text-slate-300">{j.job_type?.replace('_', ' ') || '—'}</td>
                     <td className="px-4 py-3"><span className={`badge ${j.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700/50 text-slate-400 border border-slate-600/50'}`}>{j.status}</span></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`badge capitalize ${
+                          j.moderation_status === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : j.moderation_status === 'pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          : j.moderation_status === 'rejected' ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          : 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
+                        }`}>{j.moderation_status}</span>
+                        <div className="flex gap-1">
+                          {j.moderation_status !== 'approved' && (
+                            <button onClick={() => moderateJobHandler(j, 'approved')} title="Approve" className="rounded-lg p-1 text-emerald-400 transition-colors hover:bg-emerald-500/20"><CheckCircle2 className="h-4 w-4" /></button>
+                          )}
+                          {j.moderation_status !== 'rejected' && (
+                            <button onClick={() => moderateJobHandler(j, 'rejected')} title="Reject" className="rounded-lg p-1 text-red-400 transition-colors hover:bg-red-500/20"><Ban className="h-4 w-4" /></button>
+                          )}
+                          {j.moderation_status !== 'flagged' && (
+                            <button onClick={() => moderateJobHandler(j, 'flagged')} title="Flag" className="rounded-lg p-1 text-violet-400 transition-colors hover:bg-violet-500/20"><Flag className="h-4 w-4" /></button>
+                          )}
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-4 py-3"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-slate-300">{j.applications_count}</span></td>
                     <td className="px-4 py-3 text-center">
                       <button onClick={() => deleteJob(j)} title="Delete job" className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-500/20">
@@ -427,7 +539,29 @@ export function AdminDashboard() {
       {/* ACTIVITY TAB */}
       {tab === 'activity' && (
         <GlassmorphicCard className="p-6">
-          <h3 className="text-sm font-semibold text-white mb-4">Application Activity</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h3 className="text-sm font-semibold text-white">Application Activity</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <select value={activityStatus} onChange={(e) => setActivityStatus(e.target.value)}
+                className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                <option value="">All statuses</option>
+                <option value="applied">Applied</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="rejected">Rejected</option>
+                <option value="hired">Hired</option>
+              </select>
+              <input type="text" placeholder="Applicant name..." value={activityName} onChange={(e) => setActivityName(e.target.value)}
+                className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+              <select value={activityDays} onChange={(e) => setActivityDays(e.target.value)}
+                className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                <option value="">All time</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+              <button onClick={loadActivity} className="btn-primary px-3 py-2 text-xs"><Search className="h-3.5 w-3.5" /> Filter</button>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -464,6 +598,60 @@ export function AdminDashboard() {
             </table>
           </div>
         </GlassmorphicCard>
+      )}
+
+      {/* SYSTEM TAB */}
+      {tab === 'system' && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <GlassmorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-white">System Health</h3>
+              {health && (
+                <span className={`badge ${health.healthy ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                  {health.healthy ? 'All systems operational' : 'Issues detected'}
+                </span>
+              )}
+            </div>
+            <div className="space-y-3">
+              {[
+                { key: 'database', label: 'Database connection' },
+                { key: 'storage_writable', label: 'Storage directory writable' },
+                { key: 'secret_key_configured', label: 'SECRET_KEY configured' },
+                { key: 'gemini_api_key_configured', label: 'GEMINI_API_KEY configured' },
+              ].map(item => {
+                const ok = health ? health.checks[item.key] : undefined;
+                return (
+                  <div key={item.key} className="flex items-center justify-between rounded-lg border border-slate-700/50 bg-slate-800/30 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <HeartPulse className="h-4 w-4 text-slate-400" />
+                      <span className="text-sm text-slate-300">{item.label}</span>
+                    </div>
+                    {ok === undefined ? <span className="text-xs text-slate-500">checking…</span>
+                      : ok ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <AlertCircle className="h-4 w-4 text-red-400" />}
+                  </div>
+                );
+              })}
+            </div>
+          </GlassmorphicCard>
+
+          <GlassmorphicCard className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Megaphone className="h-4 w-4 text-red-400" />
+              <h3 className="text-sm font-semibold text-white">Broadcast Notification</h3>
+            </div>
+            <div className="space-y-3">
+              <input type="text" placeholder="Title (required)" value={bcTitle} onChange={(e) => setBcTitle(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+              <textarea placeholder="Message" value={bcMessage} onChange={(e) => setBcMessage(e.target.value)} rows={3}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+              <input type="text" placeholder="Link (optional, e.g. /app/jobs)" value={bcLink} onChange={(e) => setBcLink(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+              <button onClick={broadcastHandler} disabled={broadcasting} className="btn-primary w-full disabled:opacity-50">
+                <Send className="h-4 w-4" /> {broadcasting ? 'Sending…' : 'Send to all users'}
+              </button>
+            </div>
+          </GlassmorphicCard>
+        </div>
       )}
     </div>
   );

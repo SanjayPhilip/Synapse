@@ -125,7 +125,20 @@ export function ResumePage() {
     } catch (err) { console.error(err); showToast('Failed to restore version.', 'error'); }
   }
 
-  function handleExportPDF() { window.print(); }
+  async function handleExportPDF() {
+    if (!resume) return;
+    const name = parsedData.contact?.name || profile?.full_name || 'Resume';
+    const { exportResumePdf } = await import('@/lib/resume-pdf');
+    exportResumePdf(`${name}_resume_v${resume.version}`, name, parsedData);
+    showToast('PDF downloaded.');
+  }
+
+  async function handleExportVersionPdf(r: Resume) {
+    const name = r.parsed_data.contact?.name || profile?.full_name || 'Resume';
+    const { exportResumePdf } = await import('@/lib/resume-pdf');
+    exportResumePdf(`${name}_resume_v${r.version}`, name, r.parsed_data);
+    showToast(`Version ${r.version} PDF downloaded.`);
+  }
 
   function handleExportMarkdown() {
     if (!resume) return;
@@ -265,9 +278,14 @@ export function ResumePage() {
                         <div className="text-xs text-slate-500">{r.file_name} · {r.skills.length} skills · {new Date(r.created_at).toLocaleDateString()}</div>
                       </div>
                       {!r.is_current && (
-                        <button onClick={() => handleRestoreVersion(r)} className="btn-ghost text-xs text-cyan-400 hover:bg-cyan-500/10">
-                          <RotateCcw className="h-3 w-3" /> Restore
-                        </button>
+                        <>
+                          <button onClick={() => handleExportVersionPdf(r)} className="btn-ghost text-xs text-slate-400 hover:bg-slate-800/50">
+                            <Download className="h-3 w-3" /> Export
+                          </button>
+                          <button onClick={() => handleRestoreVersion(r)} className="btn-ghost text-xs text-cyan-400 hover:bg-cyan-500/10">
+                            <RotateCcw className="h-3 w-3" /> Restore
+                          </button>
+                        </>
                       )}
                     </div>
                   ))}

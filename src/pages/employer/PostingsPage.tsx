@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Plus, Briefcase, Edit2, Trash2, Eye, EyeOff, Users } from 'lucide-react';
+import { Plus, Briefcase, Edit2, Trash2, Eye, EyeOff, Users, Copy } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getJobPostings, createJobPosting, updateJobPosting, deleteJobPosting, getApplicationsForJob } from '@/lib/api';
+import { getJobPostings, createJobPosting, updateJobPosting, deleteJobPosting, repostJobPosting, getApplicationsForJob } from '@/lib/api';
 import { seedSampleJobs } from '@/lib/seed';
 import type { JobPosting } from '@/types';
 import { Spinner, EmptyState, Badge, Modal } from '@/components/ui';
@@ -98,6 +98,11 @@ export function PostingsPage() {
     await deleteJobPosting(id); setJobs(prev => prev.filter(j => j.id !== id));
   }
 
+  async function handleDuplicate(job: JobPosting) {
+    const copy = await repostJobPosting(job.id);
+    setJobs(prev => [copy, ...prev]);
+  }
+
   if (loading) return <div className="flex justify-center py-20"><Spinner size={32} /></div>;
 
   const inputClass = "w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500";
@@ -137,6 +142,7 @@ export function PostingsPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => openEdit(job)} className="btn-ghost p-2 text-slate-400 hover:text-white" title="Edit"><Edit2 className="h-4 w-4" /></button>
+                  <button onClick={() => handleDuplicate(job)} className="btn-ghost p-2 text-slate-400 hover:text-white" title="Duplicate / Repost"><Copy className="h-4 w-4" /></button>
                   <button onClick={() => handleClose(job)} className="btn-ghost p-2 text-slate-400 hover:text-white" title={job.status === 'active' ? 'Close' : 'Reopen'}>
                     {job.status === 'active' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>

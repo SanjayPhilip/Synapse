@@ -13,6 +13,7 @@ class ApplicationCreate(BaseModel):
 class ApplicationUpdate(BaseModel):
     status: Optional[str] = None
     employer_notes: Optional[str] = None
+    interview_link: Optional[str] = None
 
 
 class ApplicationHistoryResponse(BaseModel):
@@ -38,6 +39,7 @@ class ApplicationResponse(BaseModel):
     match_score: Optional[float] = None
     applied_via: str
     employer_notes: Optional[str] = None
+    interview_link: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     job_posting: Optional[dict] = None

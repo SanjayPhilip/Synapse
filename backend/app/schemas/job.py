@@ -60,6 +60,7 @@ class JobPostingResponse(BaseModel):
     auto_approve_threshold: int = 85
     auto_reject_threshold: int = 50
     status: str
+    moderation_status: str = "approved"
     external_source: Optional[str] = None
     external_id: Optional[str] = None
     external_url: Optional[str] = None
