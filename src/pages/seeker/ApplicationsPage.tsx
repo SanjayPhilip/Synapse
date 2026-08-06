@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Bookmark, ExternalLink, Zap, Calendar, CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getApplications, getSavedJobs, getAutoApplyLogs, createApplication, getCurrentResume } from '@/lib/api';
+import { getApplicationsPage, getSavedJobs, getAutoApplyLogs, createApplication, getCurrentResume } from '@/lib/api';
 import type { Application, SavedJob, AutoApplyLog, JobPosting } from '@/types';
 import { Spinner, EmptyState, Badge } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
@@ -12,25 +12,40 @@ export function ApplicationsPage() {
   const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
   const [autoApplyLogs, setAutoApplyLogs] = useState<AutoApplyLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [appsLoading, setAppsLoading] = useState(false);
   const [tab, setTab] = useState<'all' | 'applied' | 'saved' | 'auto'>('all');
+  const [appPage, setAppPage] = useState(1);
+  const [appPageSize, setAppPageSize] = useState(10);
+  const [appTotal, setAppTotal] = useState(0);
+  const [appTotalPages, setAppTotalPages] = useState(1);
 
   useEffect(() => {
     if (!profile) return;
     (async () => {
       try {
-        const [a, s, logs] = await Promise.all([getApplications(profile.id), getSavedJobs(profile.id), getAutoApplyLogs(profile.id).catch(() => [])]);
-        setApplications(a); setSavedJobs(s); setAutoApplyLogs(logs);
+        const [s, logs] = await Promise.all([getSavedJobs(profile.id), getAutoApplyLogs(profile.id).catch(() => [])]);
+        setSavedJobs(s); setAutoApplyLogs(logs);
       } catch (e) { console.error(e); } finally { setLoading(false); }
     })();
   }, [profile]);
+
+  useEffect(() => {
+    if (!profile) return;
+    (async () => {
+      setAppsLoading(true);
+      try {
+        const res = await getApplicationsPage(profile.id, appPage, appPageSize);
+        setApplications(res.items); setAppTotalPages(res.total_pages); setAppTotal(res.total);
+      } catch (e) { console.error(e); } finally { setAppsLoading(false); }
+    })();
+  }, [profile, appPage, appPageSize]);
 
   async function handleApplySaved(job: JobPosting) {
     if (!profile) return;
     try {
       const resume = await getCurrentResume(profile.id);
       await createApplication({ seeker_id: profile.id, job_posting_id: job.id, resume_id: resume?.id || null, status: 'applied', match_score: null, applied_via: 'platform' });
-      const updated = await getApplications(profile.id);
-      setApplications(updated); setTab('applied');
+      setTab('applied'); setAppPage(1);
     } catch (e: any) { alert(e.code === '23505' ? "Already applied." : 'Failed to submit.'); }
   }
 
@@ -55,8 +70,8 @@ export function ApplicationsPage() {
 
       <div className="flex flex-wrap gap-2">
         {([
-          { id: 'all', label: 'All', count: applications.length },
-          { id: 'applied', label: 'Applied', count: applications.length },
+          { id: 'all', label: 'All', count: appTotal },
+          { id: 'applied', label: 'Applied', count: appTotal },
           { id: 'auto', label: 'Auto-Apply', count: autoApplyLogs.length },
           { id: 'saved', label: 'Saved', count: savedJobs.length },
         ] as const).map((t) => (
@@ -88,6 +103,23 @@ export function ApplicationsPage() {
               </div>
             </GlassmorphicCard>
           ))}
+          {applications.length > 0 && (
+            <div className="flex flex-col items-center gap-3 pt-1 sm:flex-row sm:justify-between">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span>{appTotal} total{appsLoading && <Loader2 className="h-3 w-3 animate-spin ml-1" />}</span>
+                <select value={appPageSize} onChange={(e) => { setAppPageSize(Number(e.target.value)); setAppPage(1); }} className="btn bg-slate-800 text-slate-300 border border-slate-700 text-xs px-2 py-1">
+                  <option value={10}>10 / page</option>
+                  <option value={20}>20 / page</option>
+                  <option value={50}>50 / page</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setAppPage(p => Math.max(1, p - 1))} disabled={appPage <= 1 || appsLoading} className="btn-secondary text-xs disabled:opacity-40">Prev</button>
+                <span className="text-xs text-slate-400">Page {appPage} / {appTotalPages}</span>
+                <button onClick={() => setAppPage(p => Math.min(appTotalPages, p + 1))} disabled={appPage >= appTotalPages || appsLoading} className="btn-secondary text-xs disabled:opacity-40">Next</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

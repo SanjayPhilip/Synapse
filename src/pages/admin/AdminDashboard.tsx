@@ -74,11 +74,11 @@ export function AdminDashboard() {
     try {
       const [s, u, j, a] = await Promise.all([
         api.get<AdminStats>('/api/v1/admin/stats'),
-        api.get<AdminUser[]>('/api/v1/admin/users'),
-        api.get<AdminJob[]>('/api/v1/admin/jobs'),
-        api.get<RecentActivity[]>('/api/v1/admin/activity'),
+        api.get<{ items: AdminUser[] }>('/api/v1/admin/users'),
+        api.get<{ items: AdminJob[] }>('/api/v1/admin/jobs'),
+        api.get<{ items: RecentActivity[] }>('/api/v1/admin/activity'),
       ]);
-      setStats(s); setUsers(u); setJobs(j); setActivity(a);
+      setStats(s); setUsers(u.items); setJobs(j.items); setActivity(a.items);
     } catch (e: any) {
       setError(e.message || 'Failed to load admin data');
     } finally {

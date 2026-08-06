@@ -3,6 +3,7 @@ import { Component, ReactNode } from "react";
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
+  onRetry?: () => void;
 }
 
 interface ErrorBoundaryState {
@@ -21,6 +22,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     console.error("Unhandled error:", error, errorInfo);
   }
 
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+    this.props.onRetry?.();
+  };
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
@@ -30,7 +36,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <h1 className="text-xl font-bold text-white">Something went wrong</h1>
             <p className="mt-2 text-sm text-slate-400">{this.state.error?.message}</p>
             <button
-              onClick={() => this.setState({ hasError: false, error: null })}
+              onClick={this.handleRetry}
               className="btn-primary mt-4"
             >
               Try again

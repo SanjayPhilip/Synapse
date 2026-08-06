@@ -1,28 +1,39 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from app.database import get_db
 from app.models import Notification, Profile
 from app.schemas.notification import NotificationResponse
 from app.middleware.auth import get_current_user
+from app.pagination import make_page
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 
 
-@router.get("", response_model=list[NotificationResponse])
+@router.get("")
 async def list_notifications(
-    limit: int = 50,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
+    base = (
         select(Notification)
         .where(Notification.user_id == current_user.id)
         .order_by(Notification.created_at.desc())
-        .limit(min(limit, 100))
     )
-    return result.scalars().all()
+    total = await db.scalar(
+        select(func.count()).select_from(Notification).where(Notification.user_id == current_user.id)
+    ) or 0
+    result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
+    items = result.scalars().all()
+    return make_page(
+        [NotificationResponse.model_validate(n) for n in items],
+        total,
+        page,
+        page_size,
+    )
 
 
 @router.get("/unread-count")

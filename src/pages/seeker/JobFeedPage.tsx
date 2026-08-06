@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Briefcase, MapPin, DollarSign, ExternalLink, Bookmark, Zap, Search, SlidersHorizontal, Globe, Loader2, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { getCurrentResume, getResumes, getJobPostings, createApplication, saveJob, unsaveJob, getSavedJobs, searchExternalJobs, saveExternalJob, applyExternalJob } from '@/lib/api';
+import { getCurrentResume, getResumes, getJobPostingsPage, createApplication, saveJob, unsaveJob, getSavedJobs, searchExternalJobs, saveExternalJob, applyExternalJob } from '@/lib/api';
 import { computeMatchScore } from '@/lib/matching';
 import type { Resume, JobPosting, SavedJob, ExternalJob } from '@/types';
-import { Spinner, EmptyState, Badge, Modal } from '@/components/ui';
+import { Spinner, EmptyState, Badge, Modal, SkeletonList } from '@/components/ui';
 import { AutoApplyButton } from '@/components/AutoApplyButton';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
+
+const JOB_PAGE_SIZE = 20;
 
 export function JobFeedPage() {
   const { profile } = useAuth();
@@ -35,18 +37,52 @@ export function JobFeedPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedJob, setSelectedJob] = useState<JobPosting | ExternalJob | null>(null);
   const [sort, setSort] = useState<'match' | 'newest' | 'salary'>('match');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const CATEGORIES = ['All', 'Software Engineering', 'Data Science & AI', 'Data Analytics', 'Business & MBA', 'Cloud & DevOps', 'Finance & Accounting', 'Marketing & Sales'];
+
+  async function loadJobsPage(pageNum: number, append: boolean) {
+    if (!profile) return;
+    try {
+      if (append) setLoadingMore(true);
+      const res = await getJobPostingsPage({ status: 'active', page: pageNum, pageSize: JOB_PAGE_SIZE });
+      const items = res.items.filter((job) => job.employer_id !== profile.id);
+      setJobs(prev => append ? [...prev, ...items] : items);
+      setHasMore(pageNum < res.total_pages);
+      if (resume) recalculateScores(resume, items);
+    } catch (e) { console.error(e); } finally { if (append) setLoadingMore(false); }
+  }
 
   useEffect(() => {
     if (!profile) return;
     (async () => {
       try {
-        const [r, all, j, s] = await Promise.all([getCurrentResume(profile.id), getResumes(profile.id), getJobPostings({ status: 'active' }), getSavedJobs(profile.id)]);
-        setResume(r); setAllResumes(all); setJobs(j.filter((job) => job.employer_id !== profile.id)); setSavedJobs(s);
-        if (r) recalculateScores(r, j);
+        const [r, all, s] = await Promise.all([getCurrentResume(profile.id), getResumes(profile.id), getSavedJobs(profile.id)]);
+        setResume(r); setAllResumes(all); setSavedJobs(s);
+        await loadJobsPage(1, false);
       } catch (e) { console.error(e); } finally { setLoading(false); }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+        setPage(p => p + 1);
+      }
+    }, { rootMargin: '300px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, loadingMore, loading]);
+
+  useEffect(() => {
+    if (page > 1) loadJobsPage(page, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   function recalculateScores(selectedResume: Resume, targetJobs: JobPosting[]) {
     const scoreMap: Record<string, number> = {};
@@ -308,6 +344,14 @@ export function JobFeedPage() {
               );
             })}
           </div>
+        )}
+        {hasMore && (
+          <div ref={sentinelRef} className="flex justify-center py-6">
+            {loadingMore ? <Spinner /> : <span className="text-xs text-slate-500">Scroll for more jobs</span>}
+          </div>
+        )}
+        {!hasMore && jobs.length > 0 && (
+          <p className="text-center text-xs text-slate-600 pt-2">All jobs loaded — {filteredJobs.length} shown</p>
         )}
       </div>
 

@@ -150,9 +150,9 @@ This file is self-contained; start with PHASE 1.
 - [x] Delete-account danger zone (confirm modal, soft-delete + admin flag)
 
 ### 8. Settings — Appearance & Data
-- [ ] Theme toggle in Settings (exists — link to persisted value)
+- [x] Theme toggle in Settings (exists — link to persisted value)
 - [ ] Language/locale select
-- [ ] Export my data (resume + applications JSON)
+- [x] Export my data (resume + applications JSON)
 - [x] Notification preferences (which events email vs in-app)
 
 ---
@@ -177,27 +177,27 @@ This file is self-contained; start with PHASE 1.
 ## PHASE 4 — Component Library Gaps (MEDIUM)
 
 ### 11. Shared inputs (build into `src/components/ui/`)
-- [ ] Multi-select / tag input (with Enter-to-add)
-- [ ] Accordion (collapsible sections)
-- [ ] Tooltip
-- [ ] Breadcrumb
-- [ ] Date picker
-- [ ] Toggle switch (generic — JobAlerts has inline one)
-- [ ] Select/dropdown (accessible, styled)
-- [ ] Radio group
-- [ ] Slider (auto-screening thresholds)
-- [ ] File upload component (reuse ResumePage dropzone pattern)
-- [ ] Tabs (admin panel has inline tabs — extract reusable)
-- [ ] Avatar component
+- [x] Multi-select / tag input (with Enter-to-add)
+- [x] Accordion (collapsible sections)
+- [x] Date picker
+- [x] Select/dropdown (accessible, styled)
+- [x] Radio group
+- [x] Slider (auto-screening thresholds)
+- [x] File upload component (reuse ResumePage dropzone pattern)
+- [x] Tooltip
+- [x] Breadcrumb
+- [x] Toggle switch (generic — JobAlerts has inline one)
+- [x] Tabs (admin panel has inline tabs — extract reusable)
+- [x] Avatar component
 
 ### 12. Feedback & states
-- [ ] Skeleton loading cards (dashboards, feed, lists)
-- [ ] Progress bar for uploads (exists — wire into ResumePage upload)
-- [ ] Error boundary retry button (exists in ErrorBoundary — add retry)
+- [x] Skeleton loading cards (dashboards, feed, lists)
+- [x] Progress bar for uploads (exists — wire into ResumePage upload)
+- [x] Error boundary retry button (exists in ErrorBoundary — add retry)
 - [x] 500 error page
-- [ ] Toast variants: info + custom duration (exists — extend)
-- [ ] Confirm-action modal variant (exists as Modal — add confirm/danger style)
-- [ ] Form modal variant
+- [x] Toast variants: info + custom duration (exists — extend)
+- [x] Confirm-action modal variant (exists as Modal — add confirm/danger style)
+- [x] Form modal variant
 
 ### 13. Application detail
 - [ ] Application detail drawer/modal (job info + status timeline + actions)
@@ -208,13 +208,13 @@ This file is self-contained; start with PHASE 1.
 ## PHASE 5 — UX / Product Polish (MEDIUM)
 
 ### 14. Pagination / Infinite scroll
-- [ ] Backend: `page`/`page_size` on jobs, applications, admin lists, notifications
-- [ ] Frontend: infinite scroll on job feed; pagination on tables
+- [x] Backend: `page`/`page_size` on jobs, applications, admin lists, notifications
+- [x] Frontend: infinite scroll on job feed; pagination on tables
 
 ### 15. Job feed upgrades
 - [x] Sort dropdown (score, date, salary)
 - [x] Location filter + salary filter UI (salary exists hidden)
-- [ ] Remote toggle (exists as filter)
+- [x] Remote toggle (exists as filter)
 - [x] Job detail view/modal
 - [ ] Employer topbar search
 

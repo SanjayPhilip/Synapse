@@ -1,12 +1,13 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import Application, JobPosting, Profile, Notification, ApplicationStatusHistory
 from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse, ApplicationHistoryResponse
 from app.middleware.auth import get_current_user
+from app.pagination import make_page
 
 
 async def _record_history(
@@ -82,19 +83,23 @@ def _to_response(app: Application) -> ApplicationResponse:
 router = APIRouter(prefix="/api/v1/applications", tags=["applications"])
 
 
-@router.get("", response_model=list[ApplicationResponse])
+@router.get("")
 async def list_my_applications(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
+    base = (
         select(Application)
         .options(selectinload(Application.job_posting))
         .where(Application.seeker_id == current_user.id)
         .order_by(Application.created_at.desc())
     )
+    total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
     apps = result.scalars().all()
-    return [_to_response(a) for a in apps]
+    return make_page([_to_response(a) for a in apps], total, page, page_size)
 
 
 @router.get("/job/{job_id}", response_model=list[ApplicationResponse])

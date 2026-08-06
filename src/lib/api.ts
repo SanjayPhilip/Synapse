@@ -31,13 +31,38 @@ export async function uploadResume(file: File): Promise<Resume> {
 }
 
 // ============ JOB POSTINGS ============
-export async function getJobPostings(filters?: { status?: string; employerId?: string; limit?: number }): Promise<JobPosting[]> {
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+function unwrapItems<T>(res: Paginated<T> | T[]): T[] {
+  return Array.isArray(res) ? res : res.items;
+}
+
+export async function getJobPostings(filters?: { status?: string; employerId?: string; limit?: number; page?: number; pageSize?: number }): Promise<JobPosting[]> {
   const params = new URLSearchParams();
   if (filters?.status) params.set('status', filters.status);
   if (filters?.employerId) params.set('employer_id', filters.employerId);
   if (filters?.limit) params.set('limit', String(filters.limit));
+  if (filters?.page) params.set('page', String(filters.page));
+  if (filters?.pageSize) params.set('page_size', String(filters.pageSize));
   const qs = params.toString();
-  return api.get<JobPosting[]>(`/api/v1/jobs${qs ? `?${qs}` : ''}`);
+  const res = await api.get<Paginated<JobPosting> | JobPosting[]>(`/api/v1/jobs${qs ? `?${qs}` : ''}`);
+  return unwrapItems(res);
+}
+
+export async function getJobPostingsPage(filters?: { status?: string; employerId?: string; page?: number; pageSize?: number }): Promise<Paginated<JobPosting>> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.employerId) params.set('employer_id', filters.employerId);
+  if (filters?.page) params.set('page', String(filters.page));
+  if (filters?.pageSize) params.set('page_size', String(filters.pageSize));
+  const qs = params.toString();
+  return api.get<Paginated<JobPosting>>(`/api/v1/jobs${qs ? `?${qs}` : ''}`);
 }
 
 export async function getJobPosting(id: string): Promise<JobPosting | null> {
@@ -61,8 +86,13 @@ export async function deleteJobPosting(id: string): Promise<void> {
 }
 
 // ============ APPLICATIONS ============
-export async function getApplications(_seekerId: string): Promise<Application[]> {
-  return api.get<Application[]>('/api/v1/applications');
+export async function getApplications(_seekerId: string, page = 1, pageSize = 20): Promise<Application[]> {
+  const res = await api.get<Paginated<Application> | Application[]>(`/api/v1/applications?page=${page}&page_size=${pageSize}`);
+  return unwrapItems(res);
+}
+
+export async function getApplicationsPage(_seekerId: string, page = 1, pageSize = 20): Promise<Paginated<Application>> {
+  return api.get<Paginated<Application>>(`/api/v1/applications?page=${page}&page_size=${pageSize}`);
 }
 
 export async function getApplicationsForJob(jobPostingId: string): Promise<Application[]> {
@@ -212,8 +242,9 @@ export async function getChatMessages(sessionId: string): Promise<{ role: string
 }
 
 // ============ NOTIFICATIONS ============
-export async function getNotifications(): Promise<Notification[]> {
-  return api.get<Notification[]>('/api/v1/notifications');
+export async function getNotifications(page = 1, pageSize = 20): Promise<Notification[]> {
+  const res = await api.get<Paginated<Notification> | Notification[]>(`/api/v1/notifications?page=${page}&page_size=${pageSize}`);
+  return unwrapItems(res);
 }
 
 export async function getUnreadNotificationCount(): Promise<number> {

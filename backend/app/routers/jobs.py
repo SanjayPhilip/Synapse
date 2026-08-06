@@ -1,12 +1,13 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.database import get_db
 from app.models import JobPosting, Profile, JobAlert
 from app.schemas.job import JobPostingCreate, JobPostingUpdate, JobPostingResponse
 from app.services.matching import recompute_scores_for_job
 from app.middleware.auth import get_current_user
+from app.pagination import make_page
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
 
@@ -43,15 +44,19 @@ async def _match_job_alerts(db: AsyncSession, job: JobPosting):
         )
 
 
-@router.get("", response_model=list[JobPostingResponse])
+@router.get("")
 async def list_jobs(
     status: str | None = None,
     category: str | None = None,
     employer_id: uuid.UUID | None = None,
-    limit: int = Query(default=50, le=100),
+    limit: int | None = Query(default=None, ge=1, le=100),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if limit is not None:
+        page_size = min(limit, 100)
     query = select(JobPosting).order_by(JobPosting.created_at.desc())
     if status:
         query = query.where(JobPosting.status == status)
@@ -63,9 +68,16 @@ async def list_jobs(
         query = query.where(JobPosting.category == category)
     if employer_id:
         query = query.where(JobPosting.employer_id == employer_id)
-    query = query.limit(limit)
-    result = await db.execute(query)
-    return result.scalars().all()
+
+    total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
+    result = await db.execute(query.offset((page - 1) * page_size).limit(page_size))
+    items = result.scalars().all()
+    return make_page(
+        [JobPostingResponse.model_validate(j) for j in items],
+        total,
+        page,
+        page_size,
+    )
 
 
 @router.get("/{job_id}", response_model=JobPostingResponse)

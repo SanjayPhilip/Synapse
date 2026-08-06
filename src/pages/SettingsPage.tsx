@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { User2, Building2, Save, Sun, Moon, Lock } from 'lucide-react';
+import { User2, Building2, Save, Sun, Moon, Lock, Download } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { updateProfile, changePassword } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
+import { getResumes, getApplications } from '@/lib/api';
 import { Spinner } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
+import { useToast } from '@/context/ToastContext';
 
 export function SettingsPage() {
   const { profile, activeRole } = useAuth();
@@ -19,6 +21,50 @@ export function SettingsPage() {
   const [changed, setChanged] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const { theme, toggleTheme } = useTheme();
+  const { showToast: toast } = useToast();
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExportData() {
+    if (!profile) return;
+    setExporting(true);
+    try {
+      const [resumes, applications] = await Promise.all([
+        getResumes(profile.id),
+        getApplications(profile.id),
+      ]);
+
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        profile: {
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          role: profile.role,
+          company_name: profile.company_name,
+          avatar_url: profile.avatar_url,
+          created_at: profile.created_at,
+        },
+        resumes,
+        applications,
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `synapse-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ title: 'Export complete', message: 'Your data has been downloaded as JSON.', type: 'success' });
+    } catch (err) {
+      toast({ title: 'Export failed', message: err instanceof Error ? err.message : 'Unknown error', type: 'error' });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function handleSave() {
     if (!profile) return;
@@ -133,6 +179,18 @@ export function SettingsPage() {
       <GlassmorphicCard className="p-6">
         <h3 className="text-base font-semibold text-white">Account</h3>
         <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-800/30 p-3">
+            <div className="flex items-center gap-3">
+              <Download className="h-5 w-5 text-cyan-400" />
+              <div>
+                <div className="text-sm font-medium text-white">Export My Data</div>
+                <div className="text-xs text-slate-500">Download resume + applications as JSON</div>
+              </div>
+            </div>
+            <button onClick={handleExportData} disabled={exporting} className="btn-secondary">
+              {exporting ? <Spinner size={16} /> : <Download className="h-4 w-4" />} Export
+            </button>
+          </div>
           <div className="flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-800/30 p-3">
             <div className="flex items-center gap-3">
               <Building2 className="h-5 w-5 text-slate-500" />

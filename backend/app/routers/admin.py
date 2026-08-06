@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 from app.database import get_db
 from app.models import Profile, JobPosting, Resume, Application, MatchScore
 from app.middleware.auth import require_role
+from app.pagination import make_page
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -40,10 +41,14 @@ async def get_admin_stats(
 
 @router.get("/users")
 async def list_users(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: Profile = Depends(require_role("admin")),
 ):
-    result = await db.execute(select(Profile).order_by(desc(Profile.created_at)))
+    base = select(Profile).order_by(desc(Profile.created_at))
+    total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
     profiles = result.scalars().all()
     
     users_data = []
@@ -57,7 +62,7 @@ async def list_users(
             "is_active": p.is_active,
             "created_at": p.created_at.isoformat() if p.created_at else None,
         })
-    return users_data
+    return make_page(users_data, total, page, page_size)
 
 
 @router.put("/users/{user_id}/status")
@@ -98,10 +103,14 @@ async def delete_user(
 
 @router.get("/jobs")
 async def list_admin_jobs(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: Profile = Depends(require_role("admin")),
 ):
-    result = await db.execute(select(JobPosting, Profile).join(Profile, JobPosting.employer_id == Profile.id).order_by(desc(JobPosting.created_at)))
+    base = select(JobPosting, Profile).join(Profile, JobPosting.employer_id == Profile.id).order_by(desc(JobPosting.created_at))
+    total = await db.scalar(select(func.count()).select_from(select(JobPosting).subquery())) or 0
+    result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
     rows = result.all()
 
     jobs_data = []
@@ -122,7 +131,7 @@ async def list_admin_jobs(
             "applications_count": app_count or 0,
             "created_at": job.created_at.isoformat() if job.created_at else None,
         })
-    return jobs_data
+    return make_page(jobs_data, total, page, page_size)
 
 
 @router.delete("/jobs/{job_id}")
@@ -143,16 +152,19 @@ async def delete_admin_job(
 
 @router.get("/activity")
 async def get_recent_activity(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: Profile = Depends(require_role("admin")),
 ):
-    result = await db.execute(
+    base = (
         select(Application, Profile, JobPosting)
         .join(Profile, Application.seeker_id == Profile.id)
         .join(JobPosting, Application.job_posting_id == JobPosting.id)
         .order_by(desc(Application.created_at))
-        .limit(15)
     )
+    total = await db.scalar(select(func.count()).select_from(select(Application).subquery())) or 0
+    result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
     rows = result.all()
 
     activities = []
@@ -166,4 +178,4 @@ async def get_recent_activity(
             "match_score": float(app.match_score) if app.match_score else None,
             "created_at": app.created_at.isoformat() if app.created_at else None,
         })
-    return activities
+    return make_page(activities, total, page, page_size)

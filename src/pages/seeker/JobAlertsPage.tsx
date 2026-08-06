@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BellRing, Plus, Trash2, MapPin, Tag, Loader2 } from 'lucide-react';
 import { getJobAlerts, createJobAlert, updateJobAlert, deleteJobAlert } from '@/lib/api';
 import type { JobAlert } from '@/types';
-import { Spinner, EmptyState } from '@/components/ui';
+import { Spinner, EmptyState, ToggleSwitch } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
 
 const CATEGORIES = ['Software Engineering', 'Data Science & AI', 'Data Analytics', 'Business & MBA', 'Cloud & DevOps', 'Finance & Accounting', 'Marketing & Sales'];
@@ -88,9 +88,11 @@ export function JobAlertsPage() {
                 <div className="mt-1 text-xs text-slate-500">Created {new Date(alert.created_at).toLocaleDateString()}</div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => toggle(alert)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${alert.is_active ? 'bg-cyan-600' : 'bg-slate-700'}`} title={alert.is_active ? 'Active' : 'Paused'}>
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${alert.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
+                <ToggleSwitch
+                  checked={alert.is_active}
+                  onChange={(checked) => toggle({ ...alert, is_active: checked })}
+                  title={alert.is_active ? 'Active' : 'Paused'}
+                />
                 <button onClick={() => remove(alert.id)} className="btn-ghost p-2 text-slate-500 hover:text-red-400"><Trash2 className="h-4 w-4" /></button>
               </div>
             </GlassmorphicCard>

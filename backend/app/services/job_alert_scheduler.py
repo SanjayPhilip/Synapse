@@ -6,7 +6,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.config import get_settings
-from app.database import get_async_session
+from app.database import get_db
 from app.models import JobAlert, JobPosting, Profile, ExternalJob
 from app.services.email import send_job_alert_email
 from app.services.external_jobs import search_external_jobs
@@ -63,7 +63,7 @@ def _job_to_match_dict(job, match_score: int = 80) -> dict:
 async def process_job_alert(alert_id: str):
     """Process a single job alert - find new matches and notify."""
     settings = get_settings()
-    async for db in get_async_session():
+    async for db in get_db():
         try:
             result = await db.execute(select(JobAlert).where(JobAlert.id == alert_id))
             alert = result.scalar_one_or_none()
@@ -122,7 +122,7 @@ def schedule_alert_jobs():
         return
 
     async def _load_and_schedule():
-        async for db in get_async_session():
+        async for db in get_db():
             result = await db.execute(select(JobAlert).where(JobAlert.is_active == True))  # noqa: E712
             alerts = result.scalars().all()
             for alert in alerts:

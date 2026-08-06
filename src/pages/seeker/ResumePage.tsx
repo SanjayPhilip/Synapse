@@ -5,7 +5,7 @@ import { useToast } from '@/context/ToastContext';
 import { getCurrentResume, getResumes, createResume, updateResume, deleteResume, uploadResume } from '@/lib/api';
 import { parseResumeText, extractSkillsFromData } from '@/lib/resume-parser';
 import type { ResumeData, Resume } from '@/types';
-import { Spinner } from '@/components/ui';
+import { Spinner, ProgressBar } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
 
 export function ResumePage() {
@@ -16,6 +16,7 @@ export function ResumePage() {
   const [parsedData, setParsedData] = useState<ResumeData>({});
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [saving, setSaving] = useState(false);
   const [rawText, setRawText] = useState('');
   const [manualText, setManualText] = useState('');
@@ -41,11 +42,17 @@ export function ResumePage() {
     const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
     if (!allowedTypes.includes(ext)) { showToast('Invalid file type. Upload PDF, DOCX, or TXT.', 'error'); return; }
     setUploading(true);
+    setUploadProgress(0);
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + 10, 90));
+    }, 100);
     try {
       const newResume = await uploadResume(file);
+      clearInterval(progressInterval);
+      setUploadProgress(100);
       setResume(newResume); setParsedData(newResume.parsed_data); setRawText(newResume.raw_text);
       showToast('Resume uploaded and parsed.');
-    } catch (err) { console.error(err); showToast('Failed to parse resume.', 'error'); } finally { setUploading(false); }
+    } catch (err) { console.error(err); clearInterval(progressInterval); setUploadProgress(0); showToast('Failed to parse resume.', 'error'); } finally { setTimeout(() => { setUploading(false); setUploadProgress(0); }, 500); }
   }
 
   async function handleFileUpload(e: ChangeEvent<HTMLInputElement>) {
@@ -186,7 +193,16 @@ export function ResumePage() {
                     : 'border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/5'
                 }`}
               >
-                {uploading ? <Spinner size={32} /> : (
+                {uploading ? (
+                  <div className="w-full max-w-xs">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Spinner size={20} />
+                      <span className="text-sm font-medium text-slate-300">Uploading...</span>
+                      <span className="text-sm text-slate-500 ml-auto">{uploadProgress}%</span>
+                    </div>
+                    <ProgressBar value={uploadProgress} color="primary" />
+                  </div>
+                ) : (
                   <>
                     <Upload className="h-10 w-10 text-slate-500" />
                     <span className="mt-2 text-sm font-medium text-slate-300">
