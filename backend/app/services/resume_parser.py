@@ -120,6 +120,17 @@ def parse_resume_text(raw_text: str) -> dict:
                 })
             i += 1
 
+    cert_idx = next(
+        (i for i, l in enumerate(lines) if re.match(r'^certifications?\b', l, re.I)),
+        -1,
+    )
+    if cert_idx >= 0:
+        i = cert_idx + 1
+        while i < len(lines) and not re.match(r'^(education|experience|skills?|projects?)\b', lines[i], re.I) and i < cert_idx + 10:
+            if len(lines[i]) > 2:
+                data["certifications"].append({"name": lines[i], "issuer": ""})
+            i += 1
+
     for line in lines:
         if (
             len(line) > 50
@@ -140,8 +151,39 @@ def extract_skills_from_data(data: dict) -> list[str]:
         tech_keywords = [
             'JavaScript', 'TypeScript', 'Python', 'Java', 'React', 'Node.js', 'SQL',
             'AWS', 'Docker', 'Kubernetes', 'Git', 'REST', 'GraphQL', 'HTML', 'CSS',
+            'PostgreSQL', 'MongoDB', 'Redis', 'FastAPI', 'Django', 'Flask', 'React Native',
+            'Next.js', 'Vue', 'Angular', 'Tailwind', 'Machine Learning', 'TensorFlow',
+            'PyTorch', 'Pandas', 'NumPy', 'CI/CD', 'Terraform', 'Linux', 'Go', 'Rust',
         ]
         for kw in tech_keywords:
-            if re.search(rf'\b{kw}\b', desc, re.I):
+            if re.search(rf'\b{re.escape(kw)}\b', desc, re.I):
                 skills.add(kw)
-    return list(skills)
+    return [_normalize_skill(s) for s in skills]
+
+
+SKILL_SYNONYMS = {
+    "nodejs": "Node.js", "node.js": "Node.js", "node": "Node.js",
+    "js": "JavaScript", "javascript": "JavaScript", "es6": "JavaScript",
+    "ts": "TypeScript", "typescript": "TypeScript",
+    "reactjs": "React", "react.js": "React",
+    "py": "Python", "python3": "Python",
+    "postgres": "PostgreSQL", "postgresql": "PostgreSQL",
+    "mongodb": "MongoDB", "mongo": "MongoDB",
+    "golang": "Go", "go lang": "Go",
+    "rustlang": "Rust",
+    "ml": "Machine Learning", "machinelearning": "Machine Learning",
+    "tf": "TensorFlow", "tensorflow": "TensorFlow",
+    "pytorch": "PyTorch",
+    "ci/cd": "CI/CD", "cicd": "CI/CD",
+    "docker": "Docker", "dockerize": "Docker",
+    "kubernetes": "Kubernetes", "k8s": "Kubernetes",
+    "aws": "AWS", "amazon web services": "AWS",
+    "gcp": "GCP", "google cloud": "GCP",
+    "azure": "Azure",
+    "git": "Git", "github": "Git", "gitlab": "Git",
+}
+
+
+def _normalize_skill(skill: str) -> str:
+    key = skill.strip().lower()
+    return SKILL_SYNONYMS.get(key, skill.strip())

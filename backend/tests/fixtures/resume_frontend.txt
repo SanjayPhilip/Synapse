@@ -1,0 +1,27 @@
+Maria Garcia
+maria.garcia@example.com
+(555) 987-6543
+linkedin.com/in/mariagarcia
+
+FRONTEND ENGINEER
+
+Summary: 5 years crafting responsive web applications with React and TypeScript.
+
+EXPERIENCE
+TechShop - Frontend Engineer (2020 - Present)
+- Built React component library with TypeScript and Tailwind CSS
+- Implemented GraphQL client integration and REST API consumption
+- Led Next.js migration of the marketing site
+
+StartupX - Junior Developer (2018 - 2020)
+- Developed Vue components and CSS layouts
+- Used Node.js for build tooling
+
+EDUCATION
+BS Information Technology, City College (2014 - 2018)
+
+SKILLS
+React, React Native, TypeScript, JavaScript, Node.js, GraphQL, REST, Tailwind, HTML, CSS, Next.js, Vue
+
+CERTIFICATIONS
+Google UX Design Certificate

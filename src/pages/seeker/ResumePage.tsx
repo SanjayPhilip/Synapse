@@ -80,9 +80,16 @@ export function ResumePage() {
     if (!profile || !manualText.trim()) return;
     setUploading(true);
     try {
-      const parsed = parseResumeText(manualText);
+      let parsed: ResumeData;
+      let skills: string[];
+      try {
+        const server = await parseResumeTextApi(manualText);
+        parsed = server.parsed_data; skills = server.skills;
+      } catch {
+        parsed = parseResumeText(manualText);
+        skills = extractSkillsFromData(parsed);
+      }
       setParsedData(parsed); setRawText(manualText);
-      const skills = extractSkillsFromData(parsed);
       const newResume = await createResume({
         user_id: profile.id, file_name: 'Manual Entry', file_type: 'manual',
         parsed_data: parsed, raw_text: manualText, skills,

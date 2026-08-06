@@ -1,0 +1,27 @@
+Alex Johnson
+alex.johnson@example.com
++1 (555) 123-4567
+linkedin.com/in/alexjohnson
+
+SENIOR PYTHON DEVELOPER
+
+Summary: 7 years building backend services with Python, FastAPI and PostgreSQL.
+
+EXPERIENCE
+Acme Corp - Senior Backend Engineer (2021 - Present)
+- Designed REST APIs with FastAPI serving 2M requests/day
+- Migrated data warehouse to PostgreSQL with Redis caching
+- Deployed services on AWS using Docker and Kubernetes
+
+Beta Inc - Backend Developer (2018 - 2021)
+- Built Django services and CI/CD pipelines
+- Wrote unit tests for Python services
+
+EDUCATION
+BS Computer Science, State University (2014 - 2018)
+
+SKILLS
+Python, FastAPI, Django, PostgreSQL, Redis, AWS, Docker, Kubernetes, Git, REST, GraphQL
+
+CERTIFICATIONS
+AWS Certified Solutions Architect

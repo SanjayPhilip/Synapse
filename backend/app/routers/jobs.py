@@ -1,7 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from app.database import get_db
 from app.models import JobPosting, Profile, JobAlert
 from app.schemas.job import JobPostingCreate, JobPostingUpdate, JobPostingResponse
@@ -46,6 +46,7 @@ async def _match_job_alerts(db: AsyncSession, job: JobPosting):
 
 @router.get("")
 async def list_jobs(
+    q: str | None = None,
     status: str | None = None,
     category: str | None = None,
     employer_id: uuid.UUID | None = None,
@@ -72,6 +73,14 @@ async def list_jobs(
         query = query.where(JobPosting.category == category)
     if employer_id:
         query = query.where(JobPosting.employer_id == employer_id)
+    if q:
+        like = f"%{q}%"
+        query = query.where(or_(
+            JobPosting.title.ilike(like),
+            JobPosting.description.ilike(like),
+            JobPosting.category.ilike(like),
+            JobPosting.location.ilike(like),
+        ))
 
     total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
     result = await db.execute(query.offset((page - 1) * page_size).limit(page_size))

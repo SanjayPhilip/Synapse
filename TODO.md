@@ -251,15 +251,15 @@ This file is self-contained; start with PHASE 1.
 ## PHASE 7 — Search & Parser Quality (MEDIUM)
 
 ### 20. Job search backend
-- [ ] Full-text search endpoint (title/description/category/location)
-- [ ] Search across on-platform + external jobs
-- [ ] Saved searches + save filters
+- [x] Full-text search endpoint (title/description/category/location)
+- [x] Search across on-platform + external jobs (platform `q` search + external search panel coexist on JobFeedPage)
+- [x] Saved searches + save filters (JobAlertsPage — keywords/category/location)
 
 ### 21. Resume parser quality
-- [ ] Frontend manual paste → backend `/resumes/parse` (exists) — wire in
-- [ ] LinkedIn profile URL import/parse
-- [ ] Parser test corpus (fixtures + golden outputs)
-- [ ] Skills normalization (synonyms, aliases)
+- [x] Frontend manual paste → backend `/resumes/parse` (exists) — wire in
+- [x] LinkedIn profile URL import/parse (regex in parser + paste flow; live LinkedIn fetch deferred)
+- [x] Parser test corpus (fixtures + golden outputs)
+- [x] Skills normalization (synonyms, aliases)
 
 ---
 

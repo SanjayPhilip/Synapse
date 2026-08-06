@@ -41,13 +41,14 @@ export function JobFeedPage() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const CATEGORIES = ['All', 'Software Engineering', 'Data Science & AI', 'Data Analytics', 'Business & MBA', 'Cloud & DevOps', 'Finance & Accounting', 'Marketing & Sales'];
 
-  async function loadJobsPage(pageNum: number, append: boolean) {
+  async function loadJobsPage(pageNum: number, append: boolean, searchQuery: string = search) {
     if (!profile) return;
     try {
       if (append) setLoadingMore(true);
-      const res = await getJobPostingsPage({ status: 'active', page: pageNum, pageSize: JOB_PAGE_SIZE });
+      const res = await getJobPostingsPage({ status: 'active', page: pageNum, pageSize: JOB_PAGE_SIZE, q: searchQuery || undefined });
       const items = res.items.filter((job) => job.employer_id !== profile.id);
       setJobs(prev => append ? [...prev, ...items] : items);
       setHasMore(pageNum < res.total_pages);
@@ -160,12 +161,11 @@ export function JobFeedPage() {
   }
 
   const filteredJobs = jobs.filter((job) => {
-    const matchesSearch = !search || job.title.toLowerCase().includes(search.toLowerCase()) || job.description.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filter === 'all' || (filter === 'remote' && job.is_remote) || job.job_type === filter;
     const matchesCategory = selectedCategory === 'All' || job.category === selectedCategory;
     const matchesSalary = salaryMin === 0 || (job.salary_min !== null && job.salary_min >= salaryMin);
     const matchesLocation = !locationFilter || (job.location && job.location.toLowerCase().includes(locationFilter.toLowerCase()));
-    return matchesSearch && matchesFilter && matchesCategory && matchesSalary && matchesLocation;
+    return matchesFilter && matchesCategory && matchesSalary && matchesLocation;
   }).sort((a, b) => {
     if (sort === 'match') return (scores[b.id] || 0) - (scores[a.id] || 0);
     if (sort === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -219,7 +219,7 @@ export function JobFeedPage() {
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search jobs by title or keyword..." className={`${inputClass} pl-10`} />
+            <input value={search} onChange={(e) => { setSearch(e.target.value); if (searchTimer.current) clearTimeout(searchTimer.current); searchTimer.current = setTimeout(() => loadJobsPage(1, false, e.target.value), 400); }} placeholder="Search jobs by title or keyword..." className={`${inputClass} pl-10`} />
           </div>
           <div className="relative sm:w-48">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />

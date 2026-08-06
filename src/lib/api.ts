@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert, ExternalJob, ExternalJobSearchResponse } from '@/types';
+import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert, ExternalJob, ExternalJobSearchResponse, ResumeData } from '@/types';
 
 // ============ RESUMES ============
 export async function getResumes(_userId: string): Promise<Resume[]> {
@@ -30,6 +30,10 @@ export async function uploadResume(file: File): Promise<Resume> {
   return api.upload<Resume>('/api/v1/resumes/upload', file);
 }
 
+export async function parseResumeText(rawText: string): Promise<{ parsed_data: ResumeData; skills: string[] }> {
+  return api.post('/api/v1/resumes/parse', { raw_text: rawText });
+}
+
 // ============ JOB POSTINGS ============
 export interface Paginated<T> {
   items: T[];
@@ -43,24 +47,26 @@ function unwrapItems<T>(res: Paginated<T> | T[]): T[] {
   return Array.isArray(res) ? res : res.items;
 }
 
-export async function getJobPostings(filters?: { status?: string; employerId?: string; limit?: number; page?: number; pageSize?: number }): Promise<JobPosting[]> {
+export async function getJobPostings(filters?: { status?: string; employerId?: string; limit?: number; page?: number; pageSize?: number; q?: string }): Promise<JobPosting[]> {
   const params = new URLSearchParams();
   if (filters?.status) params.set('status', filters.status);
   if (filters?.employerId) params.set('employer_id', filters.employerId);
   if (filters?.limit) params.set('limit', String(filters.limit));
   if (filters?.page) params.set('page', String(filters.page));
   if (filters?.pageSize) params.set('page_size', String(filters.pageSize));
+  if (filters?.q) params.set('q', filters.q);
   const qs = params.toString();
   const res = await api.get<Paginated<JobPosting> | JobPosting[]>(`/api/v1/jobs${qs ? `?${qs}` : ''}`);
   return unwrapItems(res);
 }
 
-export async function getJobPostingsPage(filters?: { status?: string; employerId?: string; page?: number; pageSize?: number }): Promise<Paginated<JobPosting>> {
+export async function getJobPostingsPage(filters?: { status?: string; employerId?: string; page?: number; pageSize?: number; q?: string }): Promise<Paginated<JobPosting>> {
   const params = new URLSearchParams();
   if (filters?.status) params.set('status', filters.status);
   if (filters?.employerId) params.set('employer_id', filters.employerId);
   if (filters?.page) params.set('page', String(filters.page));
   if (filters?.pageSize) params.set('page_size', String(filters.pageSize));
+  if (filters?.q) params.set('q', filters.q);
   const qs = params.toString();
   return api.get<Paginated<JobPosting>>(`/api/v1/jobs${qs ? `?${qs}` : ''}`);
 }
