@@ -61,7 +61,7 @@ async def _create_job_and_resume(client: AsyncClient, employer_token: str, seeke
 
 
 async def test_duplicate_application_prevented(client: AsyncClient):
-    """Test that applying twice to same job with same resume returns existing application."""
+    """Test that applying twice to same job with same resume returns 400 error."""
     employer_token = await _register_and_login(client, 'emp1@test.com', 'employer')
     seeker_token = await _register_and_login(client, 'seek1@test.com', 'seeker')
     job, resume, headers_emp, headers_seek = await _create_job_and_resume(client, employer_token, seeker_token)
@@ -76,15 +76,14 @@ async def test_duplicate_application_prevented(client: AsyncClient):
     app1 = resp1.json()
     assert app1['status'] == 'applied'
 
-    # Second application - should return existing, not create duplicate
+    # Second application - should return 400 error (duplicate prevention)
     resp2 = await client.post('/api/v1/applications', json={
         'job_posting_id': job['id'],
         'resume_id': resume['id'],
         'applied_via': 'platform',
     }, headers=headers_seek)
-    assert resp2.status_code == 200, resp2.text
-    app2 = resp2.json()
-    assert app2['id'] == app1['id']  # Same application returned
+    assert resp2.status_code == 400
+    assert 'already applied' in resp2.json()['detail'].lower()
 
     # Verify only one application in DB
     async with async_session() as session:
@@ -264,8 +263,8 @@ async def test_employer_can_list_applications_for_their_job(client: AsyncClient)
         'applied_via': 'platform',
     }, headers=headers_seek)
 
-    # Employer lists applications
-    list_resp = await client.get('/api/v1/applications', headers=headers_emp)
+    # Employer lists applications for their job
+    list_resp = await client.get(f'/api/v1/applications/job/{job["id"]}', headers=headers_emp)
     assert list_resp.status_code == 200
     apps = list_resp.json()
     assert len(apps) >= 1
@@ -286,7 +285,9 @@ async def test_seeker_can_list_own_applications(client: AsyncClient):
 
     list_resp = await client.get('/api/v1/applications', headers=headers_seek)
     assert list_resp.status_code == 200
-    apps = list_resp.json()
+    data = list_resp.json()
+    assert 'items' in data
+    apps = data['items']
     assert len(apps) >= 1
     assert apps[0]['seeker_id'] == apps[0]['seeker_id']
 

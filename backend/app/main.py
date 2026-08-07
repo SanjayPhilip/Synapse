@@ -1,5 +1,6 @@
 import os
 import asyncio
+import signal
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +13,6 @@ from app.middleware.rate_limit import RateLimitMiddleware
 from app.routers import auth, resumes, jobs, applications, matching, chat, saved_jobs, rewrites, auto_apply, admin, notifications, ws, job_alerts, external_jobs, profile, security, analytics
 from app.database import get_db, engine
 from app.workers import celery_app
-from app.services.job_alert_scheduler import start_scheduler, stop_scheduler
 
 settings = get_settings()
 
@@ -25,21 +25,37 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    start_scheduler()
-    print("[FastAPI] Application startup complete")
-    yield
-    # Shutdown
-    print("[FastAPI] Initiating graceful shutdown...")
-    stop_scheduler()
+    # Startup - scheduler runs in worker process (python -m app.workers.worker_runner)
+    print("[FastAPI] Application startup complete (scheduler runs in worker process)")
     
-    # Close database connection pool
-    await engine.dispose()
-    print("[FastAPI] Database connection pool closed")
+    # Signal handlers for graceful shutdown (SIGTERM from Docker, SIGINT from Ctrl+C)
+    shutdown_event = asyncio.Event()
     
-    # Give Celery a moment to flush any pending results
-    await asyncio.sleep(0.5)
-    print("[FastAPI] Shutdown complete")
+    def _signal_handler(sig: int, frame):
+        print(f"[FastAPI] Received signal {sig}, initiating shutdown...")
+        shutdown_event.set()
+    
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(sig, _signal_handler, sig, None)
+        except NotImplementedError:
+            # Windows doesn't support add_signal_handler
+            pass
+    
+    try:
+        yield
+    finally:
+        # Shutdown
+        print("[FastAPI] Initiating graceful shutdown...")
+        
+        # Close database connection pool
+        await engine.dispose()
+        print("[FastAPI] Database connection pool closed")
+        
+        # Give Celery a moment to flush any pending results
+        await asyncio.sleep(0.5)
+        print("[FastAPI] Shutdown complete")
 
 
 app = FastAPI(

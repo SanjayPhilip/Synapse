@@ -9,12 +9,12 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }:
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
       <div className={`relative z-10 w-full ${maxWidth} card max-h-[90vh] overflow-y-auto animate-scale-in`}>
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
-          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+          <h3 id="modal-title" className="text-base font-semibold text-slate-900">{title}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none" aria-label="Close">&times;</button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -121,7 +121,7 @@ export function ProgressBar({ value, max = 100, color = 'primary' }: { value: nu
     red: 'bg-danger-500',
   };
   return (
-    <div className="h-2 w-full rounded-full bg-slate-200">
+    <div className="h-2 w-full rounded-full bg-slate-200" data-testid="progress-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
       <div className={`h-2 rounded-full ${colors[color] || colors.primary} transition-all duration-500`} style={{ width: `${pct}%` }} />
     </div>
   );
@@ -162,6 +162,7 @@ export function Toast({ message, type = 'success', onClose }: { message: string;
 export function Spinner({ size = 20 }: { size?: number }) {
   return (
     <div
+      data-testid="spinner"
       className="animate-spin rounded-full border-2 border-slate-200 border-t-primary-600"
       style={{ width: size, height: size }}
     />
@@ -176,6 +177,8 @@ export function ToggleSwitch({ checked, onChange, disabled, title }: {
 }) {
   return (
     <button
+      role="switch"
+      aria-checked={checked}
       onClick={() => !disabled && onChange(!checked)}
       disabled={disabled}
       title={title}

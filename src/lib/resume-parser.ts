@@ -8,7 +8,9 @@ import type { ResumeData } from '@/types';
  */
 export async function extractTextFromFile(file: File): Promise<string> {
   if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
-    return await file.text();
+    // Use arrayBuffer + TextDecoder for better compatibility
+    const buffer = await file.arrayBuffer();
+    return new TextDecoder().decode(buffer);
   }
 
   // For PDF/DOCX, attempt to read as text (works for simple files).

@@ -239,15 +239,15 @@ async def update_application(
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    if app.seeker_id != current_user.id:
-        job_result = await db.execute(
-            select(JobPosting).where(
-                JobPosting.id == app.job_posting_id,
-                JobPosting.employer_id == current_user.id,
-            )
+    # Only employer who owns the job can update application status
+    job_result = await db.execute(
+        select(JobPosting).where(
+            JobPosting.id == app.job_posting_id,
+            JobPosting.employer_id == current_user.id,
         )
-        if not job_result.scalar_one_or_none():
-            raise HTTPException(status_code=403, detail="Not authorized")
+    )
+    if not job_result.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Not authorized")
 
     old_status = app.status
     for key, value in data.model_dump(exclude_unset=True).items():

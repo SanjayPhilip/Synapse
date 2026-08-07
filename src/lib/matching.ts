@@ -13,7 +13,7 @@ const STOP_WORDS = new Set([
   'more', 'most', 'other', 'such', 'only', 'own', 'same', 'too', 'now', 'will',
 ]);
 
-function tokenize(text: string): string[] {
+export function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[^\w\s+#.]/g, ' ')
@@ -21,11 +21,11 @@ function tokenize(text: string): string[] {
     .filter((w) => w.length > 1 && !STOP_WORDS.has(w));
 }
 
-function extractKeywords(text: string): Set<string> {
+export function extractKeywords(text: string): Set<string> {
   return new Set(tokenize(text));
 }
 
-function jaccardSimilarity(setA: Set<string>, setB: Set<string>): number {
+export function jaccardSimilarity(setA: Set<string>, setB: Set<string>): number {
   if (setA.size === 0 || setB.size === 0) return 0;
   const intersection = new Set([...setA].filter((x) => setB.has(x)));
   const union = new Set([...setA, ...setB]);
@@ -40,7 +40,7 @@ function dotProduct(a: number[], b: number[]): number {
   return sum;
 }
 
-function cosineSimilarity(a: number[], b: number[]): number {
+export function cosineSimilarity(a: number[], b: number[]): number {
   const dot = dotProduct(a, b);
   const magA = Math.sqrt(dotProduct(a, a));
   const magB = Math.sqrt(dotProduct(b, b));
@@ -52,7 +52,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
  * Lightweight semantic embedding using term-frequency vectors.
  * This approximates dense embeddings for in-browser scoring without a model server.
  */
-function embed(text: string, vocabulary?: Map<string, number>): { vector: number[]; vocab: Map<string, number> } {
+export function embed(text: string, vocabulary?: Map<string, number>): { vector: number[]; vocab: Map<string, number> } {
   const tokens = tokenize(text);
   const freq = new Map<string, number>();
   for (const t of tokens) {
