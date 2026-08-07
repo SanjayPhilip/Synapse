@@ -15,6 +15,18 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   backend:
     build: ./backend
     ports:
@@ -22,26 +34,77 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/synapse
       DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@db:5432/synapse
+      REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
       ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
       JSEARCH_API_KEY: ${JSEARCH_API_KEY:-}
+      # Storage (S3-compatible)
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_BUCKET: ${S3_BUCKET:-synapse}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      sh -c "python -m app.init_db && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      redis:
+        condition: service_healthy
 
-  frontend:
-    build:
-      context: .
-      args:
-        VITE_API_URL: /
-    ports:
-      - "80:80"
+  worker:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/synapse
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@db:5432/synapse
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
+      ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
+      JSEARCH_API_KEY: ${JSEARCH_API_KEY:-}
+      WORKER_CONCURRENCY: "4"
+      # Storage (S3-compatible)
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_BUCKET: ${S3_BUCKET:-synapse}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
     depends_on:
-      - backend
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: python -m app.workers.worker_runner
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # Automated daily backup at 2 AM UTC
+  backup:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/synapse
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@db:5432/synapse
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - backupdata:/app/backups
+    entrypoint: >
+      sh -c "
+        apk add --no-cache postgresql-client dcron &&
+        echo '0 2 * * * python -m app.scripts.backup backup >> /var/log/backup.log 2>&1' | crontab - &&
+        crond -f -l 8
+      "
 
 volumes:
   pgdata:
+  redisdata:
+  backupdata:

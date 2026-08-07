@@ -23,7 +23,7 @@ class AutoApplyLogResponse(BaseModel):
     seeker_id: UUID
     job_posting_id: UUID
     resume_id: Optional[UUID] = None
-    status: str
+    status: str  # pending, queued, in_progress, success, failed, dead_letter
     attempt_count: int
     error_message: Optional[str] = None
     screenshot_url: Optional[str] = None
@@ -34,3 +34,7 @@ class AutoApplyLogResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DeadLetterRetryRequest(BaseModel):
+    log_ids: list[UUID]

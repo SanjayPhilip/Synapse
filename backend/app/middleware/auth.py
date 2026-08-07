@@ -105,3 +105,6 @@ def require_role(*roles):
             )
         return current_user
     return role_checker
+
+
+require_admin = require_role("admin")

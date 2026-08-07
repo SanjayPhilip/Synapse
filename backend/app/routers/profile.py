@@ -6,30 +6,11 @@ from app.database import get_db
 from app.models import Profile, DEFAULT_NOTIFICATION_PREFS
 from app.schemas.profile import ProfileUpdate, ProfileResponse, AvatarUploadResponse
 from app.middleware.auth import get_current_user
+from app.storage import get_storage_backend, validate_avatar, generate_avatar_key, delete_avatar
 
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
-STORAGE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage")
-AVATAR_DIR = os.path.join(STORAGE_DIR, "avatars")
-ALLOWED_AVATAR_EXTS = {"jpg", "jpeg", "png", "gif", "webp"}
-MAX_AVATAR_SIZE = 5 * 1024 * 1024
-
-os.makedirs(AVATAR_DIR, exist_ok=True)
-
-
-def avatar_public_path(filename: str) -> str:
-    return f"/storage/avatars/{filename}"
-
-
-def remove_avatar_file(profile: Profile) -> None:
-    if not profile.avatar_url:
-        return
-    filename = os.path.basename(profile.avatar_url)
-    # Only touch files that look like local avatars (relative path under /storage/avatars/).
-    if filename and filename != profile.avatar_url:
-        path = os.path.join(AVATAR_DIR, filename)
-        if os.path.isfile(path):
-            os.remove(path)
+storage = get_storage_backend()
 
 
 @router.get("/me", response_model=ProfileResponse)
@@ -63,39 +44,37 @@ async def upload_avatar(
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if file.size and file.size > MAX_AVATAR_SIZE:
-        raise HTTPException(status_code=400, detail="File too large (max 5MB)")
-    if not file.filename or "." not in file.filename:
-        raise HTTPException(status_code=400, detail="Invalid file name")
-
-    ext = file.filename.rsplit(".", 1)[-1].lower()
-    if ext not in ALLOWED_AVATAR_EXTS:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
-
     content = await file.read()
     if not content:
         raise HTTPException(status_code=400, detail="Empty file")
-    if len(content) > MAX_AVATAR_SIZE:
-        raise HTTPException(status_code=400, detail="File too large (max 5MB)")
 
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    with open(os.path.join(AVATAR_DIR, filename), "wb") as f:
-        f.write(content)
+    is_valid, error = validate_avatar(content, file.filename or "")
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error)
 
-    remove_avatar_file(current_user)
-    current_user.avatar_url = avatar_public_path(filename)
+    # Delete old avatar if exists
+    if current_user.avatar_url:
+        delete_avatar(storage, current_user.avatar_url)
+
+    # Save new avatar
+    key = generate_avatar_key(str(current_user.id), file.filename or "avatar.png")
+    content_type = file.content_type or "image/png"
+    url = storage.save(key, content, content_type)
+
+    current_user.avatar_url = url
     await db.flush()
     await db.refresh(current_user)
     return AvatarUploadResponse(url=current_user.avatar_url)
 
 
 @router.delete("/avatar", response_model=ProfileResponse)
-async def delete_avatar(
+async def delete_avatar_endpoint(
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    remove_avatar_file(current_user)
-    current_user.avatar_url = None
+    if current_user.avatar_url:
+        delete_avatar(storage, current_user.avatar_url)
+        current_user.avatar_url = None
     await db.flush()
     await db.refresh(current_user)
     return current_user

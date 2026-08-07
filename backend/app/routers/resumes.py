@@ -211,3 +211,46 @@ async def delete_resume(
         raise HTTPException(status_code=404, detail="Resume not found")
     await db.delete(resume)
     return {"detail": "Deleted"}
+
+
+@router.post("/{resume_id}/restore", response_model=ResumeResponse)
+async def restore_resume(
+    resume_id: uuid.UUID,
+    current_user: Profile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Restore a previous resume version by creating a new current version from it."""
+    result = await db.execute(
+        select(Resume).where(Resume.id == resume_id, Resume.user_id == current_user.id)
+    )
+    resume = result.scalar_one_or_none()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    # Unset current for all user's resumes
+    await db.execute(
+        update(Resume).where(Resume.user_id == current_user.id, Resume.is_current == True).values(is_current=False)
+    )
+
+    # Get next version number
+    version_result = await db.execute(
+        select(Resume.version).where(Resume.user_id == current_user.id).order_by(Resume.version.desc()).limit(1)
+    )
+    last_version = version_result.scalar() or 0
+
+    # Create new resume from the old one
+    new_resume = Resume(
+        user_id=current_user.id,
+        file_name=resume.file_name,
+        file_type=resume.file_type,
+        parsed_data=resume.parsed_data,
+        raw_text=resume.raw_text,
+        skills=resume.skills,
+        version=last_version + 1,
+        is_current=True,
+    )
+    db.add(new_resume)
+    await db.flush()
+    await db.refresh(new_resume)
+    await recompute_scores_for_resume(db, new_resume.id)
+    return new_resume

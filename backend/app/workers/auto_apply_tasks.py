@@ -14,6 +14,10 @@ from app.workers import celery_app
 
 logger = logging.getLogger(__name__)
 
+# Retry configuration
+MAX_RETRIES = 3
+RETRY_BACKOFF_BASE = 60  # seconds
+
 
 def _materialize_resume_file(resume: Resume) -> str | None:
     """Write resume raw text to a temp file so it can be uploaded by Playwright."""
@@ -60,6 +64,15 @@ async def _fail_and_commit(db, log: AutoApplyLog, error_message: str) -> None:
     log.status = "failed"
     log.error_message = error_message
     await db.commit()
+
+
+async def _move_to_dead_letter(db, log: AutoApplyLog, error_message: str) -> None:
+    """Move a permanently failed task to dead letter status."""
+    log.status = "dead_letter"
+    log.error_message = f"DLQ: {error_message}"
+    log.attempt_count = MAX_RETRIES
+    await db.commit()
+    logger.error("auto-apply log %s moved to dead letter: %s", log.id, error_message)
 
 
 async def _run(log_id: str) -> None:
@@ -139,17 +152,48 @@ async def _run(log_id: str) -> None:
         logger.info("auto-apply log %s -> %s", log.id, log.status)
 
 
-@celery_app.task(name="auto_apply.process_auto_apply")
-def process_auto_apply(log_id: str) -> None:
-    """Celery task: run the Playwright auto-apply and persist the result."""
+@celery_app.task(
+    name="auto_apply.process_auto_apply",
+    bind=True,
+    max_retries=MAX_RETRIES,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+)
+def process_auto_apply(self, log_id: str) -> None:
+    """Celery task: run the Playwright auto-apply and persist the result.
+
+    Retries on failure with exponential backoff.
+    Moves to dead letter queue after MAX_RETRIES exhausted.
+    """
     try:
         asyncio.run(_run(log_id))
     except Exception as exc:
-        logger.exception("auto-apply task failed for log %s", log_id)
-        try:
-            asyncio.run(_mark_failed(log_id, str(exc)[:500]))
-        except Exception:
-            logger.exception("could not persist failure for log %s", log_id)
+        # Check if we've exhausted retries
+        if self.request.retries >= MAX_RETRIES:
+            logger.exception("auto-apply task failed permanently for log %s after %d retries", log_id, MAX_RETRIES)
+            try:
+                asyncio.run(_move_to_dead_letter(log_id, str(exc)[:500]))
+            except Exception:
+                logger.exception("could not move log %s to dead letter", log_id)
+            # Don't re-raise - task is dead-lettered
+            return
+        # Re-raise to trigger retry
+        raise
+
+
+async def _move_to_dead_letter(log_id: str, error_message: str) -> None:
+    async with db_module.async_session() as db:
+        result = await db.execute(
+            select(AutoApplyLog).where(AutoApplyLog.id == log_id)
+        )
+        log = result.scalar_one_or_none()
+        if log is not None:
+            log.status = "dead_letter"
+            log.error_message = f"DLQ: {error_message}"
+            log.attempt_count = MAX_RETRIES
+            await db.commit()
 
 
 async def _mark_failed(log_id: str, error_message: str) -> None:

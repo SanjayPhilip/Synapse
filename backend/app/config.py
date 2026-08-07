@@ -29,6 +29,15 @@ class Settings(BaseSettings):
         "http://localhost:3000",
     ]
 
+    # Storage (S3-compatible: AWS S3, MinIO, DigitalOcean Spaces, etc.)
+    STORAGE_BACKEND: str = "local"  # "local" or "s3"
+    S3_ENDPOINT_URL: str = ""  # e.g., https://s3.amazonaws.com or http://minio:9000
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    S3_BUCKET: str = "synapse"
+    S3_REGION: str = "us-east-1"
+    S3_PUBLIC_URL: str = ""  # Optional CDN/public URL (e.g., https://cdn.example.com)
+
     class Config:
         env_file = ".env"
 
