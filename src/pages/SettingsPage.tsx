@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User2, Building2, Save, Sun, Moon, Lock, Download } from 'lucide-react';
+import { User2, Building2, Save, Sun, Moon, Lock, Download, Globe } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { updateProfile, changePassword } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
@@ -23,6 +23,19 @@ export function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const { showToast: toast } = useToast();
   const [exporting, setExporting] = useState(false);
+  const [locale, setLocale] = useState(() => localStorage.getItem('synapse_locale') || 'en-US');
+
+  const locales = [
+    { code: 'en-US', name: 'English (US)', native: 'English (US)' },
+    { code: 'en-GB', name: 'English (UK)', native: 'English (UK)' },
+    { code: 'es-ES', name: 'Spanish (Spain)', native: 'Español (España)' },
+    { code: 'fr-FR', name: 'French (France)', native: 'Français (France)' },
+    { code: 'de-DE', name: 'German (Germany)', native: 'Deutsch (Deutschland)' },
+    { code: 'pt-BR', name: 'Portuguese (Brazil)', native: 'Português (Brasil)' },
+    { code: 'zh-CN', name: 'Chinese (Simplified)', native: '中文 (简体)' },
+    { code: 'ja-JP', name: 'Japanese', native: '日本語' },
+    { code: 'ko-KR', name: 'Korean', native: '한국어' },
+  ];
 
   async function handleExportData() {
     if (!profile) return;
@@ -85,6 +98,12 @@ export function SettingsPage() {
     setChanging(false);
     if (res.error) { setPasswordError(res.error); }
     else { setChanged(true); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setTimeout(() => setChanged(false), 2000); }
+  }
+
+  function handleLocaleChange(code: string) {
+    setLocale(code);
+    localStorage.setItem('synapse_locale', code);
+    toast({ title: 'Language updated', message: 'Preference saved. Full translation support coming soon.', type: 'info' });
   }
 
   const inputClass = "w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500";
@@ -161,18 +180,38 @@ export function SettingsPage() {
 
       <GlassmorphicCard className="p-6">
         <h3 className="text-base font-semibold text-white">Appearance</h3>
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-800/30 p-3">
-          <div className="flex items-center gap-3">
-            <Sun className="h-5 w-5 text-cyan-400" />
-            <div>
-              <div className="text-sm font-medium text-white">Theme</div>
-              <div className="text-xs text-slate-500">{theme === 'dark' ? 'Dark mode active' : 'Light mode active'}</div>
+        <div className="mt-4 space-y-4">
+          <div className="flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-800/30 p-3">
+            <div className="flex items-center gap-3">
+              <Sun className="h-5 w-5 text-cyan-400" />
+              <div>
+                <div className="text-sm font-medium text-white">Theme</div>
+                <div className="text-xs text-slate-500">{theme === 'dark' ? 'Dark mode active' : 'Light mode active'}</div>
+              </div>
             </div>
+            <button onClick={toggleTheme} className="btn-secondary">
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+            </button>
           </div>
-          <button onClick={toggleTheme} className="btn-secondary">
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            {theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
-          </button>
+          <div className="flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-800/30 p-3">
+            <div className="flex items-center gap-3">
+              <Globe className="h-5 w-5 text-cyan-400" />
+              <div>
+                <div className="text-sm font-medium text-white">Language</div>
+                <div className="text-xs text-slate-500">Interface language preference</div>
+              </div>
+            </div>
+            <select
+              value={locale}
+              onChange={(e) => handleLocaleChange(e.target.value)}
+              className="w-auto rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            >
+              {locales.map((l) => (
+                <option key={l.code} value={l.code}>{l.native}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </GlassmorphicCard>
 

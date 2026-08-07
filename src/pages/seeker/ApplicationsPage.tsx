@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Bookmark, ExternalLink, Zap, Calendar, CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Bookmark, ExternalLink, Zap, Calendar, CheckCircle2, XCircle, Loader2, AlertCircle, ChevronRight, ChevronDown, Briefcase, Trash2, Send, MessageSquare, MapPin, DollarSign } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getApplicationsPage, getSavedJobs, getAutoApplyLogs, createApplication, getCurrentResume } from '@/lib/api';
+import { getApplicationsPage, getSavedJobs, getAutoApplyLogs, createApplication, getCurrentResume, getApplicationHistory } from '@/lib/api';
 import type { Application, SavedJob, AutoApplyLog, JobPosting } from '@/types';
-import { Spinner, EmptyState, Badge } from '@/components/ui';
+import { Spinner, EmptyState, Badge, Modal } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
 
 export function ApplicationsPage() {
@@ -61,6 +61,47 @@ export function ApplicationsPage() {
   };
   const scoreColor = (s: number) => s >= 75 ? 'text-emerald-400' : s >= 50 ? 'text-amber-400' : 'text-red-400';
 
+  const [detailApp, setDetailApp] = useState<Application | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  async function openDetail(app: Application) {
+    setDetailApp(app);
+    setHistoryLoading(true);
+    try {
+      const h = await getApplicationHistory(app.id);
+      setHistory(h);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function closeDetail() {
+    setDetailApp(null);
+    setHistory([]);
+  }
+
+  function formatSalary(jp?: JobPosting): string | null {
+    if (!jp || (jp.salary_min == null && jp.salary_max == null)) return null;
+    const cur = jp.salary_currency || 'USD';
+    const fmt = (n: number) => `${n.toLocaleString()} ${cur}`;
+    if (jp.salary_min != null && jp.salary_max != null) return `${fmt(jp.salary_min)} – ${fmt(jp.salary_max)}`;
+    return jp.salary_min != null ? `${fmt(jp.salary_min)}+` : `up to ${fmt(jp.salary_max!)}`;
+  }
+
+  const statusOrder = ['applied', 'screened', 'shortlisted', 'interviewing', 'offer', 'hired', 'rejected'];
+  const statusLabels: Record<string, string> = {
+    applied: 'Applied',
+    screened: 'Screened',
+    shortlisted: 'Shortlisted',
+    interviewing: 'Interviewing',
+    offer: 'Offer',
+    hired: 'Hired',
+    rejected: 'Rejected',
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -87,7 +128,7 @@ export function ApplicationsPage() {
           {applications.length === 0 ? (
             <EmptyState icon={<Zap className="h-12 w-12" />} title="No applications yet" description="Browse the job feed and apply to positions." />
           ) : applications.map((app) => (
-            <GlassmorphicCard key={app.id} className="p-4">
+            <GlassmorphicCard key={app.id} className="p-4 cursor-pointer hover:border-cyan-500/30 transition-colors" onClick={() => openDetail(app)}>
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -99,7 +140,10 @@ export function ApplicationsPage() {
                     <span className="capitalize">{app.applied_via.replace('_', ' ')}</span>
                   </div>
                 </div>
-                {app.match_score && <div className="text-right"><div className={`text-lg font-bold ${scoreColor(app.match_score)}`}>{app.match_score.toFixed(0)}</div><div className="text-xs text-slate-500">match</div></div>}
+                <div className="flex items-center gap-3">
+                  {app.match_score && <div className="text-right"><div className={`text-lg font-bold ${scoreColor(app.match_score)}`}>{app.match_score.toFixed(0)}</div><div className="text-xs text-slate-500">match</div></div>}
+                  <ChevronRight className="h-4 w-4 text-slate-500" />
+                </div>
               </div>
             </GlassmorphicCard>
           ))}
@@ -187,6 +231,106 @@ export function ApplicationsPage() {
             </GlassmorphicCard>
           ))}
         </div>
+      )}
+
+      {detailApp && (
+        <Modal isOpen onClose={closeDetail} className="max-w-3xl max-h-[90vh]">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <h2 className="font-semibold text-white truncate">{detailApp.job_posting?.title}</h2>
+              {detailApp.job_posting && (
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
+                  {detailApp.job_posting.location && (
+                    <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{detailApp.job_posting.location}</span>
+                  )}
+                  {detailApp.job_posting.job_type && (
+                    <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" />{detailApp.job_posting.job_type}</span>
+                  )}
+                  {detailApp.job_posting.is_remote && <span className="badge bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Remote</span>}
+                  {formatSalary(detailApp.job_posting) && (
+                    <span className="flex items-center gap-1"><DollarSign className="h-3.5 w-3.5" />{formatSalary(detailApp.job_posting)}</span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge color={statusColors[detailApp.status] || 'slate'}>{statusLabels[detailApp.status] || detailApp.status}</Badge>
+            </div>
+          </div>
+
+          {detailApp.job_posting && (
+            <div className="mt-6 border-t border-slate-700/50 pt-6">
+              <h3 className="text-sm font-semibold text-slate-300 mb-2">About this role</h3>
+              <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-line">{detailApp.job_posting.description}</p>
+              {detailApp.job_posting.requirements.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-semibold text-slate-300 mb-2">Requirements</h4>
+                  <div className="flex flex-wrap gap-1.5">{detailApp.job_posting.requirements.map((r, i) => <span key={i} className="badge bg-slate-800 text-slate-300 border border-slate-700">{r}</span>)}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {detailApp.interview_link && (
+            <div className="mt-6 border-t border-slate-700/50 pt-6 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-emerald-400">Interview Scheduled</h3>
+                <p className="text-xs text-slate-500 mt-0.5">The employer invited you to a video interview.</p>
+              </div>
+              <a href={detailApp.interview_link} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm flex-shrink-0"><ExternalLink className="h-3.5 w-3.5 mr-1" /> Join</a>
+            </div>
+          )}
+
+          <div className="mt-6 border-t border-slate-700/50 pt-6">
+            <h3 className="text-sm font-semibold text-slate-300 mb-4">Status Timeline</h3>
+            {historyLoading ? (
+              <div className="flex justify-center py-8"><Spinner size={24} /></div>
+            ) : history.length === 0 ? (
+              <p className="text-slate-500 text-sm">No history available</p>
+            ) : (
+              <div className="relative pl-4 border-l border-slate-700/50">
+                {history.map((h, idx) => {
+                  const isCurrent = h.new_status === detailApp.status;
+                  const statusIdx = statusOrder.indexOf(h.new_status);
+                  const isCompleted = statusIdx !== -1 && statusOrder.indexOf(detailApp.status) !== -1 && statusIdx <= statusOrder.indexOf(detailApp.status);
+                  return (
+                    <div key={h.id} className="relative mb-6 last:mb-0">
+                      <div className="absolute left-[-9px] top-0.5 flex h-3 w-3 items-center justify-center">
+                        <div className={`h-2 w-2 rounded-full border-2 transition-colors ${
+                          isCompleted || isCurrent ? 'bg-cyan-500 border-cyan-500' : 'bg-slate-700 border-slate-600'
+                        }`} />
+                      </div>
+                      <div className="ml-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-medium text-sm ${isCompleted || isCurrent ? 'text-white' : 'text-slate-500'}`}>
+                            {statusLabels[h.new_status] || h.new_status}
+                          </span>
+                          {h.reason && <span className="badge bg-slate-800 text-slate-300 border border-slate-700 text-xs">{h.reason}</span>}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {new Date(h.created_at).toLocaleString()}
+                          {h.changed_by && <span className="ml-2">by {h.notes || 'system'}</span>}
+                        </div>
+                        {h.notes && h.reason === 'manual' && (
+                          <div className="mt-2 text-xs text-slate-400 italic">\"{h.notes}\"</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 border-t border-slate-700/50 pt-6 flex items-center justify-end gap-2">
+            {detailApp.job_posting?.external_url && (
+              <a href={detailApp.job_posting.external_url} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+                <ExternalLink className="h-3.5 w-3.5 mr-1" /> View Job
+              </a>
+            )}
+            <button onClick={closeDetail} className="btn-primary">Close</button>
+          </div>
+        </Modal>
       )}
     </div>
   );

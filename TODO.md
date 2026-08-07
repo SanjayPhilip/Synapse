@@ -151,7 +151,7 @@ This file is self-contained; start with PHASE 1.
 
 ### 8. Settings — Appearance & Data
 - [x] Theme toggle in Settings (exists — link to persisted value)
-- [ ] Language/locale select
+- [x] Language/locale select
 - [x] Export my data (resume + applications JSON)
 - [x] Notification preferences (which events email vs in-app)
 
@@ -200,8 +200,8 @@ This file is self-contained; start with PHASE 1.
 - [x] Form modal variant
 
 ### 13. Application detail
-- [ ] Application detail drawer/modal (job info + status timeline + actions)
-- [ ] Status timeline visual (applied → screened → shortlisted → hired)
+- [x] Application detail drawer/modal (job info + status timeline + actions)
+- [x] Status timeline visual (applied → screened → shortlisted → hired)
 
 ---
 

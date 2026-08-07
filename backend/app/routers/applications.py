@@ -76,8 +76,18 @@ def _to_response(app: Application) -> ApplicationResponse:
             "id": str(jp.id),
             "title": jp.title,
             "employer_id": str(jp.employer_id),
+            "description": jp.description,
+            "requirements": jp.requirements or [],
+            "responsibilities": jp.responsibilities or [],
             "location": jp.location,
+            "is_remote": jp.is_remote,
+            "salary_min": jp.salary_min,
+            "salary_max": jp.salary_max,
+            "salary_currency": jp.salary_currency,
             "job_type": jp.job_type,
+            "category": jp.category,
+            "status": jp.status,
+            "external_url": jp.external_url,
         }
     return ApplicationResponse.model_validate(data)
 
