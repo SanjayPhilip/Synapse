@@ -19,6 +19,11 @@ export function ApplicationsPage() {
   const [appTotal, setAppTotal] = useState(0);
   const [appTotalPages, setAppTotalPages] = useState(1);
 
+  // Move these before the early return so hook count is consistent
+  const [detailApp, setDetailApp] = useState<Application | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   useEffect(() => {
     if (!profile) return;
     (async () => {
@@ -52,6 +57,7 @@ export function ApplicationsPage() {
   if (loading) return <div className="flex justify-center py-20"><Spinner size={32} /></div>;
 
   const statusColors: Record<string, string> = { applied: 'blue', shortlisted: 'amber', rejected: 'red', hired: 'green' };
+
   const autoStatusConfig: Record<string, { color: string; icon: any; label: string }> = {
     pending: { color: 'slate', icon: Loader2, label: 'Pending' },
     in_progress: { color: 'blue', icon: Loader2, label: 'In Progress' },
@@ -60,10 +66,6 @@ export function ApplicationsPage() {
     cancelled: { color: 'slate', icon: AlertCircle, label: 'Cancelled' },
   };
   const scoreColor = (s: number) => s >= 75 ? 'text-emerald-400' : s >= 50 ? 'text-amber-400' : 'text-red-400';
-
-  const [detailApp, setDetailApp] = useState<Application | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
 
   async function openDetail(app: Application) {
     setDetailApp(app);
