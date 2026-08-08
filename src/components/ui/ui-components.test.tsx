@@ -15,7 +15,7 @@ import {
 describe('UI Components', () => {
   describe('Modal', () => {
     it('renders nothing when open is false', () => {
-      render(<Modal open={false} onClose={vi.fn()} title="Test" />);
+      render(<Modal open={false} onClose={vi.fn()} title="Test"><p>Content</p></Modal>);
       expect(screen.queryByText('Test')).not.toBeInTheDocument();
     });
 
@@ -32,7 +32,7 @@ describe('UI Components', () => {
     it('calls onClose when clicking close button', () => {
       const onClose = vi.fn();
       render(
-        <Modal open={true} onClose={onClose} title="Test" />
+        <Modal open={true} onClose={onClose} title="Test"><p>Content</p></Modal>
       );
       fireEvent.click(screen.getByText('×'));
       expect(onClose).toHaveBeenCalled();
@@ -41,12 +41,10 @@ describe('UI Components', () => {
     it('calls onClose when clicking backdrop', () => {
       const onClose = vi.fn();
       render(
-        <Modal open={true} onClose={onClose} title="Test">
-          <p>Content</p>
-        </Modal>
+        <Modal open={true} onClose={onClose} title="Test"><p>Content</p></Modal>
       );
       // Click the backdrop (first child of the fixed container)
-      const backdrop = screen.getByText('Content').parentElement!.parentElement!.parentElement!.firstChild;
+      const backdrop = screen.getByText('Content').parentElement!.parentElement!.parentElement!.firstChild as Element;
       fireEvent.click(backdrop);
       expect(onClose).toHaveBeenCalled();
     });

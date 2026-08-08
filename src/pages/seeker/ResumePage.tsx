@@ -83,8 +83,8 @@ export function ResumePage() {
       let parsed: ResumeData;
       let skills: string[];
       try {
-        const server = await parseResumeTextApi(manualText);
-        parsed = server.parsed_data; skills = server.skills;
+        parsed = await parseResumeText(manualText);
+        skills = (parsed.skills || []) as string[];
       } catch {
         parsed = parseResumeText(manualText);
         skills = extractSkillsFromData(parsed);

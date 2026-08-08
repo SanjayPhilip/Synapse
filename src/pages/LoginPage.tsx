@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Brain, ArrowLeft, AlertCircle, Mail, Lock } from 'lucide-react';
 import { signIn } from '@/lib/auth';

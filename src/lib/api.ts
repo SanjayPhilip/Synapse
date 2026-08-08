@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert, ExternalJob, ExternalJobSearchResponse, ResumeData } from '@/types';
+import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert, ExternalJob, ExternalJobSearchResponse, ResumeData, ApplicationStatusHistory } from '@/types';
 
 // ============ RESUMES ============
 export async function getResumes(_userId: string): Promise<Resume[]> {

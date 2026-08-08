@@ -534,7 +534,7 @@ export function TagInput({ value, onChange, placeholder = 'Add tags...', classNa
           onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
           placeholder={value.length === 0 ? placeholder : ''}
           className="flex-1 min-w-[100px] bg-transparent text-white placeholder-slate-500 focus:outline-none"
-          disabled={disabled || (maxTags && value.length >= maxTags)}
+          disabled={disabled || (maxTags !== undefined && value.length >= maxTags)}
         />
       </div>
       {showSuggestions && filteredSuggestions.length > 0 && !disabled && (

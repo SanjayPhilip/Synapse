@@ -71,9 +71,9 @@ export function SettingsPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast({ title: 'Export complete', message: 'Your data has been downloaded as JSON.', type: 'success' });
+      toast('Your data has been downloaded as JSON.', 'success');
     } catch (err) {
-      toast({ title: 'Export failed', message: err instanceof Error ? err.message : 'Unknown error', type: 'error' });
+      toast(err instanceof Error ? err.message : 'Unknown error', 'error');
     } finally {
       setExporting(false);
     }
@@ -82,7 +82,7 @@ export function SettingsPage() {
   async function handleSave() {
     if (!profile) return;
     setSaving(true);
-    const updates: any = { full_name: fullName };
+    const updates: { full_name: string; company_name?: string } = { full_name: fullName };
     if (activeRole === 'employer') updates.company_name = companyName;
     await updateProfile(profile.id, updates);
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
@@ -103,7 +103,7 @@ export function SettingsPage() {
   function handleLocaleChange(code: string) {
     setLocale(code);
     localStorage.setItem('synapse_locale', code);
-    toast({ title: 'Language updated', message: 'Preference saved. Full translation support coming soon.', type: 'info' });
+    toast('Preference saved. Full translation support coming soon.', 'info');
   }
 
   const inputClass = "w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500";

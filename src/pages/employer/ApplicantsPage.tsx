@@ -66,7 +66,7 @@ export function ApplicantsPage() {
   useEffect(() => {
     if (!selectedApplicant || !selectedApplicant.resume_id || !selectedJobId) { setAiExplanation(''); return; }
     (async () => {
-      try { const result = await getGapExplanation({ resume_id: selectedApplicant.resume_id, job_posting_id: selectedJobId }); setAiExplanation(result.explanation); } catch { setAiExplanation(''); }
+      try { const result = await getGapExplanation({ resume_id: selectedApplicant.resume_id || undefined, job_posting_id: selectedJobId }); setAiExplanation(result.explanation); } catch { setAiExplanation(''); }
     })();
   }, [selectedApplicant, selectedJobId]);
 

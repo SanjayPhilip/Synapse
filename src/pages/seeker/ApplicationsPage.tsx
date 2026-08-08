@@ -236,7 +236,7 @@ export function ApplicationsPage() {
       )}
 
       {detailApp && (
-        <Modal isOpen onClose={closeDetail} className="max-w-3xl max-h-[90vh]">
+        <Modal open onClose={closeDetail} maxWidth="max-w-3xl max-h-[90vh]" title={detailApp.job_posting?.title || 'Application Details'}>
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-white truncate">{detailApp.job_posting?.title}</h2>
