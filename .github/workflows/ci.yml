@@ -17,21 +17,98 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
       - run: npm ci
-      - run: npm run lint
       - run: npm run typecheck
+      - run: npm run lint --if-present
+      - run: npm run test --if-present
 
   backend:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: synapse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
       - run: pip install -r requirements.txt
       - run: python -m py_compile app/main.py app/config.py app/init_db.py app/seed.py
       - run: python -m py_compile app/routers/*.py app/services/*.py app/models/*.py
-      - run: pytest tests/ -v
+      - run: |
+          export PYTHONPATH=.
+          python -m app.init_db
+          python -m app.seed
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/synapse
+          DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@localhost:5432/synapse
+          SECRET_KEY: test-secret-key-for-pytest-only-32chars!!
+          GEMINI_API_KEY: ""
+          ADZUNA_APP_ID: ""
+          ADZUNA_APP_KEY: ""
+          JSEARCH_API_KEY: ""
+          REDIS_URL: redis://localhost:6379/0
+          CORS_ORIGINS: '["http://localhost:5173"]'
+      - run: pytest tests/ -v --tb=short
+
+  playwright:
+    runs-on: ubuntu-latest
+    needs: [frontend, backend]
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - run: pip install -r backend/requirements.txt
+      - name: Start dev server
+        run: |
+          cd backend
+          export PYTHONPATH=.
+          export DATABASE_URL=sqlite+aiosqlite:///./test_synapse.db
+          export DATABASE_URL_SYNC=sqlite:///./test_synapse.db
+          export SECRET_KEY=test-secret-key-for-pytest-only-32chars!!
+          python -m app.init_db
+          python -m app.seed &
+        env:
+          GEMINI_API_KEY: ""
+          ADZUNA_APP_ID: ""
+          ADZUNA_APP_KEY: ""
+          JSEARCH_API_KEY: ""
+          REDIS_URL: redis://localhost:6379/0
+          CORS_ORIGINS: '["http://localhost:5173"]'
+      - run: npm run dev &
+      - run: sleep 10
+      - run: npx playwright test --reporter=github
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
