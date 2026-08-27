@@ -23,6 +23,10 @@ def _send_email(to: str, subject: str, html: str, text: str | str = ""):
         server.send_message(msg)
 
 
+send_raw_email = _send_email
+
+
+
 def send_verification_email(to: str, verify_url: str):
     _send_email(
         to=to,

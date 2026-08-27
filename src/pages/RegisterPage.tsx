@@ -215,36 +215,37 @@ export function RegisterPage({ role }: { role: 'seeker' | 'employer' }) {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-mono text-slate-300">Full Name</label>
+                <label htmlFor="full_name" className="text-sm font-mono text-slate-300">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
-                  <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="input pl-10" placeholder="John Doe" />
+                  <input id="full_name" name="full_name" type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="input pl-10" placeholder="John Doe" />
                 </div>
               </div>
 
               {isEmployer && (
                 <div className="space-y-2">
-                  <label className="text-sm font-mono text-slate-300">Company Name</label>
+                  <label htmlFor="company_name" className="text-sm font-mono text-slate-300">Company Name</label>
                   <div className="relative">
                     <Briefcase className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
-                    <input type="text" required value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="input pl-10" placeholder="Acme Corp" />
+                    <input id="company_name" name="company_name" type="text" required value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="input pl-10" placeholder="Acme Corp" />
                   </div>
                 </div>
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-mono text-slate-300">Email Address</label>
+                <label htmlFor="email" className="text-sm font-mono text-slate-300">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
-                  <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="input pl-10" placeholder="you@example.com" />
+                  <input id="email" name="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="input pl-10" placeholder="you@example.com" />
                 </div>
               </div>
 
+
               <div className="space-y-2">
-                <label className="text-sm font-mono text-slate-300">Password</label>
+                <label htmlFor="password" className="text-sm font-mono text-slate-300">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
-                  <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="input pl-10" placeholder="Min 8 chars, 1 uppercase, 1 number" />
+                  <input id="password" name="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="input pl-10" placeholder="••••••••" />
                 </div>
                 <PasswordStrength password={password} />
               </div>

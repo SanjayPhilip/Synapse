@@ -337,3 +337,20 @@ class ExternalJob(Base):
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (Index("uq_external_jobs_source_id", "external_source", "external_id", unique=True),)
+
+
+class EmployerInvite(Base):
+    __tablename__ = "employer_invites"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employer_id = Column(GUID, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    company_name = Column(String, nullable=False)
+    email = Column(String, nullable=False, index=True)
+    role = Column(String, nullable=False, default="employer_member")
+    invite_token = Column(String, nullable=False, unique=True, index=True)
+    status = Column(String, nullable=False, default="pending")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+
+    employer = relationship("Profile", foreign_keys=[employer_id])
+

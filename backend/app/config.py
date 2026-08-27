@@ -39,7 +39,10 @@ class Settings(BaseSettings):
     S3_PUBLIC_URL: str = ""  # Optional CDN/public URL (e.g., https://cdn.example.com)
 
     class Config:
-        env_file = ".env"
+        env_file = ("backend/.env", ".env")
+        extra = "ignore"
+
+
 
 
 @lru_cache

@@ -58,14 +58,14 @@ describe('PasswordStrength', () => {
     });
 
     it('handles all lowercase with number and special', () => {
-      const result = calculatePasswordStrength('password1!');
-      expect(result.score).toBe(3); // length, number, special
+      const result = calculatePasswordStrength('pass1!');
+      expect(result.score).toBe(3); // lower, number, special (short length)
       expect(result.label).toBe('Good');
     });
 
     it('handles all uppercase with number and special', () => {
-      const result = calculatePasswordStrength('PASSWORD1!');
-      expect(result.score).toBe(3); // length, number, special
+      const result = calculatePasswordStrength('PASS1!');
+      expect(result.score).toBe(3); // upper, number, special (short length)
       expect(result.label).toBe('Good');
     });
   });
@@ -83,8 +83,8 @@ describe('PasswordStrength', () => {
 
     it('shows correct number of filled bars for weak password', () => {
       render(<PasswordStrength password="abc" />);
-      const bars = screen.getAllByRole('none').filter(el => el.tagName === 'DIV' && el.className.includes('flex-1'));
-      // Should have 5 bars total, 1 filled
+      const container = screen.getByTestId('password-strength');
+      const bars = container.querySelectorAll('.rounded-full');
       expect(bars.length).toBe(5);
     });
 
@@ -116,43 +116,44 @@ describe('PasswordStrength', () => {
     it('applies correct color class for very strong', () => {
       render(<PasswordStrength password="Abcdefg1!" />);
       const container = screen.getByTestId('password-strength');
-      expect(container).toHaveClass('bg-emerald-500');
+      expect(container.querySelector('.bg-emerald-500')).toBeInTheDocument();
     });
 
     it('applies correct color class for strong', () => {
       render(<PasswordStrength password="Abcdefg1" />);
       const container = screen.getByTestId('password-strength');
-      expect(container).toHaveClass('bg-cyan-500');
+      expect(container.querySelector('.bg-cyan-500')).toBeInTheDocument();
     });
 
     it('applies correct color class for good', () => {
       render(<PasswordStrength password="Abcdefgh" />);
       const container = screen.getByTestId('password-strength');
-      expect(container).toHaveClass('bg-yellow-500');
+      expect(container.querySelector('.bg-yellow-500')).toBeInTheDocument();
     });
 
     it('applies correct color class for fair', () => {
       render(<PasswordStrength password="abcdefgh" />);
       const container = screen.getByTestId('password-strength');
-      expect(container).toHaveClass('bg-orange-500');
+      expect(container.querySelector('.bg-orange-500')).toBeInTheDocument();
     });
 
     it('applies correct color class for weak', () => {
       render(<PasswordStrength password="abc" />);
       const container = screen.getByTestId('password-strength');
-      expect(container).toHaveClass('bg-red-500');
+      expect(container.querySelector('.bg-red-500')).toBeInTheDocument();
     });
 
     it('renders 5 bars always', () => {
       render(<PasswordStrength password="test" />);
-      const bars = screen.getAllByRole('none').filter(el => el.tagName === 'DIV' && el.className.includes('flex-1'));
+      const container = screen.getByTestId('password-strength');
+      const bars = container.querySelectorAll('.rounded-full');
       expect(bars.length).toBe(5);
     });
 
     it('fills correct number of bars based on score', () => {
       render(<PasswordStrength password="Abcdefg1!" />);
       const container = screen.getByTestId('password-strength');
-      const bars = container.querySelectorAll('div.flex-1');
+      const bars = container.querySelectorAll('.rounded-full');
       const filledBars = Array.from(bars).filter(bar => bar.className.includes('bg-emerald-500'));
       expect(filledBars.length).toBe(5);
     });

@@ -1,9 +1,10 @@
 # ⚡ SYNAPSE — AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform
 
 **Team No. 05** — *Sanjay Philip · Akshay K R · Devika S*
-**Version**: 2.5.0 (Job Feed UX, Settings Security, 500 Page, API Docs)
+**Version**: 2.7.0 (Employer Team Invites, Full Multi-Tier Tests, Worker Runner, DB Backup Utility)
 
 ---
+
 
 ## 📌 Overview
 
@@ -12,7 +13,7 @@
 Unlike conventional job portals that act purely as listing funnels, SYNAPSE is built around **one bidirectional matching engine** that serves both job seekers and employers, with centralized oversight for platform administrators:
 
 - **Job Seekers**: Upload resumes, get structured JSON parsing, receive instant fit scores against job descriptions with itemized gap reports, filter jobs by specialized domain feeds, receive AI-suggested grounded experience rewrites, and manage account credentials with password reset capabilities.
-- **Employers**: Post job openings with custom automated screening thresholds, receive automatically ranked candidate shortlists with transparent gap explanations, auto-approve/shortlist top candidates or auto-reject low-fit candidates for high-volume pipelines, and query candidate pools conversationally.
+- **Employers**: Post job openings with custom automated screening thresholds, manage employer team member invites with token verification, receive automatically ranked candidate shortlists with transparent gap explanations, auto-approve/shortlist top candidates or auto-reject low-fit candidates for high-volume pipelines, and query candidate pools conversationally.
 - **Administrators**: Monitor platform metrics, manage users, oversee job postings, and audit system activities.
 
 ---
@@ -52,6 +53,8 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 - ✔️ **Topbar Search** — Seeker header search filters the job feed via `/app/jobs?q=...`.
 
 ### 🏢 For Employers
+- ✔️ **Employer Team Member Invites** — Create, list, and revoke team member invitations (`/api/v1/employers/invites`) with token expiration and email delivery.
+
 - ✔️ **High-Volume Application Auto-Screening**:
   - **Auto-Shortlist / Approve**: Candidates scoring ≥ threshold (e.g. 85%) are automatically moved to `"shortlisted"`.
   - **Auto-Reject**: Candidates scoring < threshold (e.g. 50%) are automatically set to `"rejected"`.
@@ -267,11 +270,10 @@ To test the application immediately:
 
 ## 🗺️ Project Roadmap (Planned Enhancements)
 
-The following are **not yet implemented** — see [Feature Status](#-feature-status):
-
-- 🤖 **Headless Playwright Automation** — Replace the simulated auto-apply step with real headless-browser execution for external site application filling (Celery worker + Playwright).
-- 🗄️ **External Job Aggregation Storage** — Persist and continuously refresh deduplicated Adzuna / JSearch listings in the database (currently searched live on request).
 - 📅 **Interview Scheduler** — Built-in calendar scheduling for short-listed candidates.
+- 📱 **Mobile App Companion** — React Native / PWA offline application.
+- 💬 **Employer ↔ Candidate Messaging** — Direct two-way messaging between recruiters and applicants.
+- 🔑 **OAuth Social Login** — Google / LinkedIn single sign-on.
 
 ---
 
@@ -301,16 +303,23 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 
 ### 🧪 Testing & Deployment
 
-- ✅ **Test suite (NFR-08)** — pytest harness (12 tests): auth (register/login, forgot-password, resend-verification), auto-screening (threshold + on-the-fly score), audit trail, match-score smoke tests, and external jobs (search/dedup/cache-fallback, save/apply materialization).
+- ✅ **Test suite (NFR-08)** — Full multi-tier test suite:
+  - **Backend**: Pytest harness with **61 passing tests** covering auth, resume parsing, auto-screening, audit history, match scoring, security, and external jobs.
+  - **Frontend**: Vitest unit/component suite with **163 passing tests** across 6 spec files (`resume-parser`, `gap-summary`, `matching`, `PasswordStrength`, `routing`, `ui-components`).
+  - **E2E**: Playwright suite covering Seeker, Employer, Admin user journeys, and theme/mobile responsiveness (`e2e/`).
+- ✅ **Database Backup Utility** — Standalone CLI utility (`python scripts/db_backup.py backup / restore`) supporting SQLite & PostgreSQL.
+- ✅ **Worker Runner** — Standalone background process runner (`python -m app.workers.worker_runner`) with graceful signal handling.
 - ✅ **Docker (NFR-09)** — `Dockerfile` + `docker-compose` for backend, frontend, and Postgres.
-- ✅ **CI pipeline** — lint + typecheck + test on push (GitHub Actions).
+- ✅ **CI pipeline** — lint + typecheck + pytest + vitest on push (GitHub Actions).
 - ✅ **Prod DB migrations** — Alembic (`alembic.ini` + `backend/alembic/versions/`) with a `python -m app.migrate` runner (`npm run migrate`). `init_db` remains for zero-config local dev.
+
 
 ### 📄 Docs
 
 - ✅ **Test / deploy instructions** — added `Testing` and `Deployment` sections to README.
 - ✅ **API reference** — FastAPI auto-generated OpenAPI docs available at `/docs` when running the backend.
-- 🔲 **Deploy runbook** — step-by-step production deployment guide (see `docs/DEPLOY.md` — pending).
+- ✅ **Deploy runbook** — step-by-step production deployment guide ([DEPLOY_RUNBOOK.md](file:///C:/Personal/Synapse/DEPLOY_RUNBOOK.md)).
+
 
 ---
 

@@ -98,7 +98,11 @@ async def main():
     # Handle signals
     loop = asyncio.get_event_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, lambda: runner._shutdown_event.set())
+        try:
+            loop.add_signal_handler(sig, lambda: runner._shutdown_event.set())
+        except NotImplementedError:
+            pass
+
 
     await runner.initialize()
 
