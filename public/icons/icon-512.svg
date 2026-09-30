@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="synapseGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18bfef"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <filter id="glow512" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#1e252d"/>
+  <path d="M256 74 L304 197 L432 218 L330 304 L368 432 L256 362 L144 432 L182 304 L80 218 L208 197 Z" fill="url(#synapseGrad512)" opacity="0.15"/>
+  <g filter="url(#glow512)">
+    <circle cx="256" cy="256" r="54" fill="url(#synapseGrad512)"/>
+    <circle cx="128" cy="170" r="26" fill="#18bfef"/>
+    <circle cx="384" cy="170" r="26" fill="#8b5cf6"/>
+    <circle cx="149" cy="362" r="30" fill="#8b5cf6"/>
+    <circle cx="363" cy="362" r="30" fill="#18bfef"/>
+    <path d="M128 170 Q 192 213, 256 256" stroke="#18bfef" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <path d="M384 170 Q 320 213, 256 256" stroke="#8b5cf6" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <path d="M149 362 Q 202 309, 256 256" stroke="#8b5cf6" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <path d="M363 362 Q 310 309, 256 256" stroke="#18bfef" stroke-width="10" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

@@ -332,7 +332,7 @@ This file is self-contained; start with PHASE 1.
 - [ ] LinkedIn profile parsing (deeper: positions, education, endorsements)
 - [x] Interview scheduling integration (calendar links: Google Calendar, Outlook, and .ics export in candidate drawer and seeker applications)
 - [ ] Salary negotiation assistant
-- [ ] Mobile app (React Native / PWA offline)
+- [x] Mobile app (React Native / PWA offline: Web App Manifest, ServiceWorker offline caching, and offline status indicator)
 - [ ] Advanced search filters + facets
 - [x] Embedding caching for sentence-transformers (bounded SHA-256 LRU cache + hit/miss metrics in `app/services/matching.py`)
 - [ ] Social login (Google/LinkedIn OAuth)
