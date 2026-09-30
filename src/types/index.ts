@@ -236,3 +236,33 @@ export interface ExternalJobSearchResponse {
   stale: boolean;
   jobs: ExternalJob[];
 }
+
+export interface NegotiationScript {
+  title: string;
+  scenario: string;
+  body: string;
+}
+
+export interface SalaryNegotiationRequest {
+  job_title: string;
+  offered_salary?: number | null;
+  target_salary?: number | null;
+  location?: string;
+  experience_level?: string;
+  currency?: string;
+}
+
+export interface SalaryNegotiationResponse {
+  job_title: string;
+  currency: string;
+  offered_salary?: number | null;
+  benchmark_min: number;
+  benchmark_mid: number;
+  benchmark_max: number;
+  recommended_counter: number;
+  recommended_counter_percentage: number;
+  strategy_summary: string;
+  leverage_points: string[];
+  scripts: NegotiationScript[];
+  tactical_tips: string[];
+}

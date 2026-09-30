@@ -6,6 +6,7 @@ import { getGoogleCalendarUrl, getOutlookCalendarUrl, downloadIcsFile } from '@/
 import type { Application, SavedJob, AutoApplyLog, JobPosting } from '@/types';
 import { Spinner, EmptyState, Badge, Modal } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
+import { SalaryNegotiatorModal } from '@/components/SalaryNegotiatorModal';
 
 export function ApplicationsPage() {
   const { profile } = useAuth();
@@ -24,6 +25,7 @@ export function ApplicationsPage() {
   const [detailApp, setDetailApp] = useState<Application | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [salaryNegotiatorOpen, setSalaryNegotiatorOpen] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -362,15 +364,36 @@ export function ApplicationsPage() {
             )}
           </div>
 
-          <div className="mt-6 border-t border-slate-700/50 pt-6 flex items-center justify-end gap-2">
-            {detailApp.job_posting?.external_url && (
-              <a href={detailApp.job_posting.external_url} target="_blank" rel="noopener noreferrer" className="btn-secondary">
-                <ExternalLink className="h-3.5 w-3.5 mr-1" /> View Job
-              </a>
-            )}
-            <button onClick={closeDetail} className="btn-primary">Close</button>
+          <div className="mt-6 border-t border-slate-700/50 pt-6 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setSalaryNegotiatorOpen(true)}
+              className="btn-secondary text-xs flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 border-cyan-500/30"
+            >
+              <DollarSign className="h-3.5 w-3.5" />
+              Salary &amp; Negotiation Strategy
+            </button>
+            <div className="flex items-center gap-2">
+              {detailApp.job_posting?.external_url && (
+                <a href={detailApp.job_posting.external_url} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">
+                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> View Job
+                </a>
+              )}
+              <button onClick={closeDetail} className="btn-primary text-xs">Close</button>
+            </div>
           </div>
         </Modal>
+      )}
+
+      {/* Salary Negotiation Modal */}
+      {detailApp && (
+        <SalaryNegotiatorModal
+          isOpen={salaryNegotiatorOpen}
+          onClose={() => setSalaryNegotiatorOpen(false)}
+          initialJobTitle={detailApp.job_posting?.title || ''}
+          initialOfferedSalary={detailApp.job_posting?.salary_min || detailApp.job_posting?.salary_max || null}
+          initialLocation={detailApp.job_posting?.location || 'Remote'}
+        />
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert, ExternalJob, ExternalJobSearchResponse, ResumeData, ApplicationStatusHistory } from '@/types';
+import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert, ExternalJob, ExternalJobSearchResponse, ResumeData, ApplicationStatusHistory, SalaryNegotiationRequest, SalaryNegotiationResponse } from '@/types';
 
 // ============ RESUMES ============
 export async function getResumes(_userId: string): Promise<Resume[]> {
@@ -340,4 +340,9 @@ export async function resendVerification(email: string): Promise<{ message: stri
 
 export async function resetPassword(token: string, new_password: string): Promise<{ message: string }> {
   return api.post<{ message: string }>('/api/v1/auth/reset-password', { token, new_password });
+}
+
+// ============ SALARY NEGOTIATION ============
+export async function getSalaryNegotiationAdvice(data: SalaryNegotiationRequest): Promise<SalaryNegotiationResponse> {
+  return api.post<SalaryNegotiationResponse>('/api/v1/salary/negotiate', data);
 }

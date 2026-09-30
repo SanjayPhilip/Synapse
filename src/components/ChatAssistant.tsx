@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Sparkles, Brain, Check } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, Brain, Check, DollarSign } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getCurrentResume, getJobPostings, updateRewriteSuggestion, createChatSession, sendChatMessage, createRewriteSuggestions } from '@/lib/api';
 import { computeMatchScore } from '@/lib/matching';
 import { generateRewriteSuggestions } from '@/lib/rewrite-engine';
+import { SalaryNegotiatorModal } from '@/components/SalaryNegotiatorModal';
 import type { RewriteSuggestion, JobPosting } from '@/types';
 
 interface Message {
@@ -22,6 +23,7 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [salaryModalOpen, setSalaryModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -195,7 +197,7 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
 
   const quickActions = activeRole === 'employer'
     ? ['Show top candidates', 'Explain match scores', 'How to post a job']
-    : ['Rewrite my resume for a job', 'Why is my score low?', 'Find relevant jobs'];
+    : ['Rewrite my resume for a job', '💰 Salary Negotiation', 'Why is my score low?', 'Find relevant jobs'];
 
   return (
     <>
@@ -291,6 +293,19 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
                       <Sparkles className="h-3 w-3" /> Routed to: {msg.module_routed}
                     </div>
                   )}
+
+                  {(msg.module_routed === 'salary' || msg.content.toLowerCase().includes('salary') || msg.content.toLowerCase().includes('negotiat') || msg.content.toLowerCase().includes('counter-offer')) && msg.role === 'assistant' && (
+                    <div className="mt-2.5 pt-2 border-t border-slate-700/50">
+                      <button
+                        type="button"
+                        onClick={() => setSalaryModalOpen(true)}
+                        className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 w-full justify-center"
+                      >
+                        <DollarSign className="h-3.5 w-3.5 text-cyan-300" />
+                        Launch Salary Negotiation Assistant
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -315,7 +330,13 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
                 {quickActions.map((action) => (
                   <button
                     key={action}
-                    onClick={() => { setInput(action); }}
+                    onClick={() => {
+                      if (action.includes('Salary')) {
+                        setSalaryModalOpen(true);
+                      } else {
+                        setInput(action);
+                      }
+                    }}
                     className="rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1 text-xs font-medium text-slate-300 hover:bg-slate-700/50 hover:text-white"
                   >
                     {action}
@@ -347,6 +368,12 @@ export function ChatAssistant({ activeModule }: { activeModule: string }) {
           </div>
         </div>
       )}
+
+      {/* Salary Negotiation Assistant Modal */}
+      <SalaryNegotiatorModal
+        isOpen={salaryModalOpen}
+        onClose={() => setSalaryModalOpen(false)}
+      />
     </>
   );
 }
