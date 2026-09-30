@@ -81,6 +81,38 @@ export interface JobPosting {
   closed_at: string | null;
 }
 
+export interface SkillFacet {
+  name: string;
+  count: number;
+}
+
+export interface JobFacets {
+  categories: Record<string, number>;
+  job_types: Record<string, number>;
+  work_modes: { remote: number; on_site: number };
+  experience_levels: Record<string, number>;
+  salary_brackets: Record<string, number>;
+  top_skills: SkillFacet[];
+  locations: Record<string, number>;
+  total_jobs: number;
+}
+
+export interface JobFilterParams {
+  status?: string;
+  employerId?: string;
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  category?: string;
+  jobType?: string;
+  isRemote?: boolean;
+  minSalary?: number;
+  maxSalary?: number;
+  location?: string;
+  experienceLevel?: string;
+  skill?: string;
+}
+
 export type ApplicationStatus = 'applied' | 'shortlisted' | 'rejected' | 'hired';
 export type AppliedVia = 'auto_apply' | 'manual_redirect' | 'platform';
 

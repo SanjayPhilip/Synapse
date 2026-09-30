@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client';
-import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert, ExternalJob, ExternalJobSearchResponse, ResumeData, ApplicationStatusHistory, SalaryNegotiationRequest, SalaryNegotiationResponse } from '@/types';
+import type { Resume, JobPosting, Application, MatchScore, SavedJob, RewriteSuggestion, AutoApplyLog, Notification, JobAlert, ExternalJob, ExternalJobSearchResponse, ResumeData, ApplicationStatusHistory, SalaryNegotiationRequest, SalaryNegotiationResponse, JobFacets, JobFilterParams } from '@/types';
 
 // ============ RESUMES ============
 export async function getResumes(_userId: string): Promise<Resume[]> {
@@ -47,7 +47,7 @@ function unwrapItems<T>(res: Paginated<T> | T[]): T[] {
   return Array.isArray(res) ? res : res.items;
 }
 
-export async function getJobPostings(filters?: { status?: string; employerId?: string; limit?: number; page?: number; pageSize?: number; q?: string }): Promise<JobPosting[]> {
+export async function getJobPostings(filters?: JobFilterParams & { limit?: number }): Promise<JobPosting[]> {
   const params = new URLSearchParams();
   if (filters?.status) params.set('status', filters.status);
   if (filters?.employerId) params.set('employer_id', filters.employerId);
@@ -55,20 +55,40 @@ export async function getJobPostings(filters?: { status?: string; employerId?: s
   if (filters?.page) params.set('page', String(filters.page));
   if (filters?.pageSize) params.set('page_size', String(filters.pageSize));
   if (filters?.q) params.set('q', filters.q);
+  if (filters?.category && filters.category !== 'All') params.set('category', filters.category);
+  if (filters?.jobType && filters.jobType !== 'all') params.set('job_type', filters.jobType);
+  if (filters?.isRemote !== undefined) params.set('is_remote', String(filters.isRemote));
+  if (filters?.minSalary !== undefined && filters.minSalary > 0) params.set('min_salary', String(filters.minSalary));
+  if (filters?.maxSalary !== undefined && filters.maxSalary > 0) params.set('max_salary', String(filters.maxSalary));
+  if (filters?.location) params.set('location', filters.location);
+  if (filters?.experienceLevel && filters.experienceLevel !== 'all') params.set('experience_level', filters.experienceLevel);
+  if (filters?.skill) params.set('skill', filters.skill);
   const qs = params.toString();
   const res = await api.get<Paginated<JobPosting> | JobPosting[]>(`/api/v1/jobs${qs ? `?${qs}` : ''}`);
   return unwrapItems(res);
 }
 
-export async function getJobPostingsPage(filters?: { status?: string; employerId?: string; page?: number; pageSize?: number; q?: string }): Promise<Paginated<JobPosting>> {
+export async function getJobPostingsPage(filters?: JobFilterParams): Promise<Paginated<JobPosting>> {
   const params = new URLSearchParams();
   if (filters?.status) params.set('status', filters.status);
   if (filters?.employerId) params.set('employer_id', filters.employerId);
   if (filters?.page) params.set('page', String(filters.page));
   if (filters?.pageSize) params.set('page_size', String(filters.pageSize));
   if (filters?.q) params.set('q', filters.q);
+  if (filters?.category && filters.category !== 'All') params.set('category', filters.category);
+  if (filters?.jobType && filters.jobType !== 'all') params.set('job_type', filters.jobType);
+  if (filters?.isRemote !== undefined) params.set('is_remote', String(filters.isRemote));
+  if (filters?.minSalary !== undefined && filters.minSalary > 0) params.set('min_salary', String(filters.minSalary));
+  if (filters?.maxSalary !== undefined && filters.maxSalary > 0) params.set('max_salary', String(filters.maxSalary));
+  if (filters?.location) params.set('location', filters.location);
+  if (filters?.experienceLevel && filters.experienceLevel !== 'all') params.set('experience_level', filters.experienceLevel);
+  if (filters?.skill) params.set('skill', filters.skill);
   const qs = params.toString();
   return api.get<Paginated<JobPosting>>(`/api/v1/jobs${qs ? `?${qs}` : ''}`);
+}
+
+export async function getJobFacets(): Promise<JobFacets> {
+  return api.get<JobFacets>('/api/v1/jobs/facets');
 }
 
 export async function getJobPosting(id: string): Promise<JobPosting | null> {

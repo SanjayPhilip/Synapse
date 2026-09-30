@@ -70,3 +70,20 @@ class JobPostingResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SkillFacet(BaseModel):
+    name: str
+    count: int
+
+
+class JobFacetsResponse(BaseModel):
+    categories: dict[str, int]
+    job_types: dict[str, int]
+    work_modes: dict[str, int]
+    experience_levels: dict[str, int]
+    salary_brackets: dict[str, int]
+    top_skills: list[SkillFacet]
+    locations: dict[str, int]
+    total_jobs: int
+
