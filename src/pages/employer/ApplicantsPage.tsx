@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Users, Star, CheckCircle2, XCircle, ChevronRight, Lightbulb, Download, Search } from 'lucide-react';
+import { Users, Star, CheckCircle2, XCircle, ChevronRight, Lightbulb, Download, Search, Calendar, Video, Link2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { getJobPostings, getApplicationsForJob, updateApplication, getGapExplanation, getApplicationHistory } from '@/lib/api';
 import { api } from '@/lib/api-client';
 import { computeMatchScore } from '@/lib/matching';
+import { getGoogleCalendarUrl, getOutlookCalendarUrl, downloadIcsFile } from '@/lib/calendar';
 import type { JobPosting, Application, Resume, Profile, ApplicationStatusHistory } from '@/types';
 import { Spinner, EmptyState, Badge, ScoreRing } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
@@ -27,6 +28,9 @@ export function ApplicantsPage() {
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantWithDetails | null>(null);
   const [aiExplanation, setAiExplanation] = useState('');
   const [history, setHistory] = useState<ApplicationStatusHistory[]>([]);
+  const [interviewLink, setInterviewLink] = useState('');
+  const [savingInterview, setSavingInterview] = useState(false);
+  const [interviewDate, setInterviewDate] = useState('');
 
   useEffect(() => {
     if (!profile) return;
@@ -76,6 +80,29 @@ export function ApplicantsPage() {
       try { setHistory(await getApplicationHistory(selectedApplicant.id)); } catch { setHistory([]); }
     })();
   }, [selectedApplicant]);
+
+  useEffect(() => {
+    if (selectedApplicant) {
+      setInterviewLink(selectedApplicant.interview_link || '');
+    } else {
+      setInterviewLink('');
+      setInterviewDate('');
+    }
+  }, [selectedApplicant]);
+
+  async function handleSaveInterview() {
+    if (!selectedApplicant) return;
+    setSavingInterview(true);
+    try {
+      await updateApplication(selectedApplicant.id, { interview_link: interviewLink });
+      setApplicants(prev => prev.map(a => a.id === selectedApplicant.id ? { ...a, interview_link: interviewLink } : a));
+      setSelectedApplicant(prev => prev ? { ...prev, interview_link: interviewLink } : null);
+    } catch (e) {
+      console.error('Failed to save interview link:', e);
+    } finally {
+      setSavingInterview(false);
+    }
+  }
 
   function exportApplicantsCSV() {
     if (filteredApplicants.length === 0) { alert('No applicants to export.'); return; }
@@ -284,6 +311,90 @@ export function ApplicantsPage() {
                   {selectedApplicant.resume?.parsed_data?.summary && (
                     <div><h4 className="text-sm font-semibold text-slate-300 mb-1">Summary</h4><p className="text-sm text-slate-400">{selectedApplicant.resume.parsed_data.summary}</p></div>
                   )}
+
+                  {/* Interview Scheduling & Calendar Links */}
+                  <div className="border-t border-slate-800 pt-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-cyan-400" />
+                      <h4 className="text-sm font-semibold text-slate-300">Interview Scheduling</h4>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">Video / Meeting Link (Google Meet, Zoom, Teams)</label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Video className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                          <input
+                            type="url"
+                            value={interviewLink}
+                            onChange={(e) => setInterviewLink(e.target.value)}
+                            placeholder="https://meet.google.com/..."
+                            className={`${inputClass} pl-9 text-xs`}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSaveInterview}
+                          disabled={savingInterview}
+                          className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                        >
+                          {savingInterview ? <Spinner size={12} /> : <Link2 className="h-3.5 w-3.5" />}
+                          Save
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">Date & Time (Optional)</label>
+                      <input
+                        type="datetime-local"
+                        value={interviewDate}
+                        onChange={(e) => setInterviewDate(e.target.value)}
+                        className={`${inputClass} text-xs`}
+                      />
+                    </div>
+
+                    {(() => {
+                      const currentJob = jobs.find((j) => j.id === selectedJobId);
+                      const calEvt = {
+                        title: `Interview: ${selectedApplicant.profile?.full_name || 'Candidate'} - ${currentJob?.title || 'Job Opening'}`,
+                        description: `Synapse interview for ${currentJob?.title || 'position'}.\nCandidate: ${selectedApplicant.profile?.full_name || ''} (${selectedApplicant.profile?.email || ''})\nMeeting link: ${interviewLink || selectedApplicant.interview_link || 'TBD'}`,
+                        location: interviewLink || selectedApplicant.interview_link || 'Online Video Meeting',
+                        startDate: interviewDate ? new Date(interviewDate) : undefined,
+                        durationMinutes: 45,
+                      };
+                      return (
+                        <div className="pt-2">
+                          <span className="text-xs text-slate-400 block mb-1.5">Add to calendar / invite candidate:</span>
+                          <div className="flex flex-wrap gap-2">
+                            <a
+                              href={getGoogleCalendarUrl(calEvt)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1"
+                            >
+                              <Calendar className="h-3 w-3 text-cyan-400" /> Google Calendar
+                            </a>
+                            <a
+                              href={getOutlookCalendarUrl(calEvt)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1"
+                            >
+                              <Calendar className="h-3 w-3 text-sky-400" /> Outlook
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => downloadIcsFile(calEvt, `interview-${selectedApplicant.profile?.full_name?.toLowerCase().replace(/\s+/g, '-') || 'candidate'}.ics`)}
+                              className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1"
+                            >
+                              <Download className="h-3 w-3 text-emerald-400" /> Download .ics
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
 
                   <div className="flex flex-wrap gap-2 border-t border-slate-800 pt-4">
                     {selectedApplicant.status === 'applied' && (

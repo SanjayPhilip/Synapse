@@ -330,11 +330,11 @@ This file is self-contained; start with PHASE 1.
 ## PHASE 10 — Post-MVP Features (LOW)
 
 - [ ] LinkedIn profile parsing (deeper: positions, education, endorsements)
-- [ ] Interview scheduling integration (calendar links)
+- [x] Interview scheduling integration (calendar links: Google Calendar, Outlook, and .ics export in candidate drawer and seeker applications)
 - [ ] Salary negotiation assistant
 - [ ] Mobile app (React Native / PWA offline)
 - [ ] Advanced search filters + facets
-- [ ] Embedding caching for sentence-transformers
+- [x] Embedding caching for sentence-transformers (bounded SHA-256 LRU cache + hit/miss metrics in `app/services/matching.py`)
 - [ ] Social login (Google/LinkedIn OAuth)
 - [ ] Referral / invite program
 - [ ] Employer branding (company page)

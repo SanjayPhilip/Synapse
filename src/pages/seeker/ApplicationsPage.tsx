@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Bookmark, ExternalLink, Zap, Calendar, CheckCircle2, XCircle, Loader2, AlertCircle, ChevronRight, ChevronDown, Briefcase, Trash2, Send, MessageSquare, MapPin, DollarSign } from 'lucide-react';
+import { Bookmark, ExternalLink, Zap, Calendar, CheckCircle2, XCircle, Loader2, AlertCircle, ChevronRight, ChevronDown, Briefcase, Trash2, Send, MessageSquare, MapPin, DollarSign, Download } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getApplicationsPage, getSavedJobs, getAutoApplyLogs, createApplication, getCurrentResume, getApplicationHistory } from '@/lib/api';
+import { getGoogleCalendarUrl, getOutlookCalendarUrl, downloadIcsFile } from '@/lib/calendar';
 import type { Application, SavedJob, AutoApplyLog, JobPosting } from '@/types';
 import { Spinner, EmptyState, Badge, Modal } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
@@ -274,12 +275,49 @@ export function ApplicationsPage() {
           )}
 
           {detailApp.interview_link && (
-            <div className="mt-6 border-t border-slate-700/50 pt-6 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-semibold text-emerald-400">Interview Scheduled</h3>
-                <p className="text-xs text-slate-500 mt-0.5">The employer invited you to a video interview.</p>
+            <div className="mt-6 border-t border-slate-700/50 pt-6 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-emerald-400">Interview Scheduled</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">The employer invited you to a video interview.</p>
+                </div>
+                <a href={detailApp.interview_link} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm flex-shrink-0"><ExternalLink className="h-3.5 w-3.5 mr-1" /> Join</a>
               </div>
-              <a href={detailApp.interview_link} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm flex-shrink-0"><ExternalLink className="h-3.5 w-3.5 mr-1" /> Join</a>
+              {(() => {
+                const calEvt = {
+                  title: `Interview: ${detailApp.job_posting?.title || 'Job Interview'}`,
+                  description: `Synapse interview for ${detailApp.job_posting?.title || 'position'}.\nMeeting link: ${detailApp.interview_link}`,
+                  location: detailApp.interview_link,
+                };
+                return (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="text-xs text-slate-400">Add to calendar:</span>
+                    <a
+                      href={getGoogleCalendarUrl(calEvt)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1"
+                    >
+                      <Calendar className="h-3 w-3 text-cyan-400" /> Google Calendar
+                    </a>
+                    <a
+                      href={getOutlookCalendarUrl(calEvt)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1"
+                    >
+                      <Calendar className="h-3 w-3 text-sky-400" /> Outlook
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => downloadIcsFile(calEvt, `interview-${detailApp.job_posting?.title?.toLowerCase().replace(/\s+/g, '-') || 'job'}.ics`)}
+                      className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1"
+                    >
+                      <Download className="h-3 w-3 text-emerald-400" /> Download .ics
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

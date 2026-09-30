@@ -7,6 +7,9 @@ from app.services.matching import (
     jaccard_similarity,
     semantic_similarity,
     tokenize,
+    get_embedding,
+    clear_embedding_cache,
+    get_embedding_cache_stats,
 )
 
 
@@ -197,6 +200,81 @@ class TestComputeMatch:
         gap = result["gap_report"]
         assert gap["matched_skills"] == []
         assert set(gap["missing_skills"]) == {"python", "fastapi"}
+
+
+class TestEmbeddingCache:
+    """Tests for sentence transformer embedding cache functionality."""
+
+    def setup_method(self):
+        clear_embedding_cache()
+
+    @patch('app.services.matching.get_model')
+    def test_cache_miss_then_hit(self, mock_get_model):
+        """First call should miss and encode; second call should hit cache without encoding."""
+        mock_model = MagicMock()
+        emb = np.array([0.25, 0.5, 0.75])
+        mock_model.encode.return_value = np.array([emb])
+        mock_get_model.return_value = mock_model
+
+        # First call: miss
+        res1 = get_embedding("Senior Backend Engineer")
+        assert np.array_equal(res1, emb)
+        assert mock_model.encode.call_count == 1
+        stats = get_embedding_cache_stats()
+        assert stats["hits"] == 0
+        assert stats["misses"] == 1
+        assert stats["size"] == 1
+
+        # Second call: hit
+        res2 = get_embedding("Senior Backend Engineer")
+        assert np.array_equal(res2, emb)
+        assert mock_model.encode.call_count == 1  # No additional encode call!
+        stats2 = get_embedding_cache_stats()
+        assert stats2["hits"] == 1
+        assert stats2["misses"] == 1
+
+    @patch('app.services.matching.get_model')
+    def test_semantic_similarity_uses_cache(self, mock_get_model):
+        """Repeated similarity calculations between identical texts should use cached vectors."""
+        mock_model = MagicMock()
+        emb1 = np.array([1.0, 0.0])
+        emb2 = np.array([0.0, 1.0])
+        mock_model.encode.return_value = np.array([emb1, emb2])
+        mock_get_model.return_value = mock_model
+
+        # Initial calculation: encodes both
+        sim1 = semantic_similarity("React Developer", "Vue Developer")
+        assert sim1 == pytest.approx(0.0)
+        assert mock_model.encode.call_count == 1
+
+        # Subsequent calculation with same texts: should be 100% cache hit!
+        sim2 = semantic_similarity("React Developer", "Vue Developer")
+        assert sim2 == pytest.approx(0.0)
+        assert mock_model.encode.call_count == 1  # No new encode calls
+
+        stats = get_embedding_cache_stats()
+        assert stats["hits"] >= 2
+
+    def test_empty_string_returns_zeros_without_encoding(self):
+        """Empty or whitespace text should return zero vector directly."""
+        emb = get_embedding("")
+        assert np.all(emb == 0)
+        assert emb.shape == (384,)
+
+    @patch('app.services.matching.MAX_EMBEDDING_CACHE_SIZE', 2)
+    @patch('app.services.matching.get_model')
+    def test_cache_eviction_bounded(self, mock_get_model):
+        """Cache should evict oldest items when exceeding max size."""
+        mock_model = MagicMock()
+        mock_model.encode.side_effect = lambda texts, **kw: np.array([[1.0, 2.0]] * len(texts))
+        mock_get_model.return_value = mock_model
+
+        get_embedding("text 1")
+        get_embedding("text 2")
+        get_embedding("text 3")
+
+        stats = get_embedding_cache_stats()
+        assert stats["size"] <= 2
 
 
 if __name__ == "__main__":

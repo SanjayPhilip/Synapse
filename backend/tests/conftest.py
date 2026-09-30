@@ -18,6 +18,7 @@ from app.models import Base
 from app.main import app
 from app import database as db_module
 from app.middleware.rate_limit import _requests
+from app.services.matching import clear_embedding_cache
 
 import pytest
 
@@ -25,6 +26,7 @@ import pytest
 @pytest.fixture(autouse=True)
 async def setup_db():
     _requests.clear()
+    clear_embedding_cache()
     async with db_module.engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)

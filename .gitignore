@@ -29,4 +29,5 @@ env_files/
 __pycache__/
 *.pyc
 venv/
+.venv/
 .codegraph/

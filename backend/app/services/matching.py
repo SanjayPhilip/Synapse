@@ -1,12 +1,124 @@
 import re
 import math
-from collections import Counter
+import hashlib
+from collections import Counter, OrderedDict
 from typing import Optional
 from uuid import UUID
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
 _model: Optional[SentenceTransformer] = None
+
+# Bounded in-memory LRU cache for sentence embeddings
+_EMBEDDING_CACHE: OrderedDict[str, np.ndarray] = OrderedDict()
+MAX_EMBEDDING_CACHE_SIZE: int = 2000
+_CACHE_HITS: int = 0
+_CACHE_MISSES: int = 0
+
+
+def _text_cache_key(text: str) -> str:
+    """Generate deterministic hash key for caching embeddings."""
+    return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
+
+
+def get_embedding_cache_stats() -> dict:
+    """Return metrics on embedding cache hits, misses, and current size."""
+    return {
+        "hits": _CACHE_HITS,
+        "misses": _CACHE_MISSES,
+        "size": len(_EMBEDDING_CACHE),
+        "max_size": MAX_EMBEDDING_CACHE_SIZE,
+    }
+
+
+def clear_embedding_cache() -> None:
+    """Clear in-memory embedding cache and reset hit/miss counters."""
+    global _CACHE_HITS, _CACHE_MISSES
+    _EMBEDDING_CACHE.clear()
+    _CACHE_HITS = 0
+    _CACHE_MISSES = 0
+
+
+def get_embedding(text: str) -> np.ndarray:
+    """Get or compute embedding vector for a single text string."""
+    global _CACHE_HITS, _CACHE_MISSES
+    clean_text = text.strip() if text else ""
+    if not clean_text:
+        return np.zeros(384, dtype=np.float32)
+
+    key = _text_cache_key(clean_text)
+    if key in _EMBEDDING_CACHE:
+        _CACHE_HITS += 1
+        _EMBEDDING_CACHE.move_to_end(key)
+        return _EMBEDDING_CACHE[key]
+
+    _CACHE_MISSES += 1
+    model = get_model()
+    raw = model.encode([clean_text], convert_to_numpy=True)
+    emb = np.asarray(raw)[0] if np.ndim(raw) > 1 else np.asarray(raw)
+    _EMBEDDING_CACHE[key] = emb
+    if len(_EMBEDDING_CACHE) > MAX_EMBEDDING_CACHE_SIZE:
+        _EMBEDDING_CACHE.popitem(last=False)
+    return emb
+
+
+def semantic_similarity(text_a: str, text_b: str) -> float:
+    global _CACHE_HITS, _CACHE_MISSES
+    clean_a = text_a.strip() if text_a else ""
+    clean_b = text_b.strip() if text_b else ""
+
+    key_a = _text_cache_key(clean_a)
+    key_b = _text_cache_key(clean_b)
+
+    cached_a = _EMBEDDING_CACHE.get(key_a)
+    cached_b = _EMBEDDING_CACHE.get(key_b)
+
+    if cached_a is not None and cached_b is not None:
+        _CACHE_HITS += 2
+        _EMBEDDING_CACHE.move_to_end(key_a)
+        _EMBEDDING_CACHE.move_to_end(key_b)
+        emb_a, emb_b = cached_a, cached_b
+    elif cached_a is not None and cached_b is None:
+        _CACHE_HITS += 1
+        _CACHE_MISSES += 1
+        _EMBEDDING_CACHE.move_to_end(key_a)
+        model = get_model()
+        raw = model.encode([clean_b], convert_to_numpy=True)
+        emb_b = np.asarray(raw)[0] if np.ndim(raw) > 1 else np.asarray(raw)
+        _EMBEDDING_CACHE[key_b] = emb_b
+        if len(_EMBEDDING_CACHE) > MAX_EMBEDDING_CACHE_SIZE:
+            _EMBEDDING_CACHE.popitem(last=False)
+        emb_a = cached_a
+    elif cached_a is None and cached_b is not None:
+        _CACHE_HITS += 1
+        _CACHE_MISSES += 1
+        _EMBEDDING_CACHE.move_to_end(key_b)
+        model = get_model()
+        raw = model.encode([clean_a], convert_to_numpy=True)
+        emb_a = np.asarray(raw)[0] if np.ndim(raw) > 1 else np.asarray(raw)
+        _EMBEDDING_CACHE[key_a] = emb_a
+        if len(_EMBEDDING_CACHE) > MAX_EMBEDDING_CACHE_SIZE:
+            _EMBEDDING_CACHE.popitem(last=False)
+        emb_b = cached_b
+    else:
+        _CACHE_MISSES += 2
+        model = get_model()
+        raw = model.encode([clean_a, clean_b], convert_to_numpy=True)
+        raw_arr = np.asarray(raw)
+        if raw_arr.ndim > 1:
+            emb_a, emb_b = raw_arr[0], raw_arr[1]
+        else:
+            emb_a, emb_b = raw_arr, raw_arr
+        _EMBEDDING_CACHE[key_a] = emb_a
+        _EMBEDDING_CACHE[key_b] = emb_b
+        while len(_EMBEDDING_CACHE) > MAX_EMBEDDING_CACHE_SIZE:
+            _EMBEDDING_CACHE.popitem(last=False)
+
+    dot = np.dot(emb_a, emb_b)
+    mag = np.linalg.norm(emb_a) * np.linalg.norm(emb_b)
+    if mag == 0:
+        return 0.0
+    return float(dot / mag)
 
 STOP_WORDS = {
     'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
@@ -42,14 +154,6 @@ def jaccard_similarity(set_a: set[str], set_b: set[str]) -> float:
     return len(set_a & set_b) / len(set_a | set_b)
 
 
-def semantic_similarity(text_a: str, text_b: str) -> float:
-    model = get_model()
-    emb = model.encode([text_a, text_b], convert_to_numpy=True)
-    dot = np.dot(emb[0], emb[1])
-    mag = np.linalg.norm(emb[0]) * np.linalg.norm(emb[1])
-    if mag == 0:
-        return 0.0
-    return float(dot / mag)
 
 
 def compute_match(

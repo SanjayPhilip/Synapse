@@ -272,6 +272,18 @@ async def update_application(
         await _record_history(db, app.id, old_status, app.status, actor_id=current_user.id,
                               reason="manual", notes=app.employer_notes)
 
+    if "interview_link" in data.model_dump(exclude_unset=True) and app.interview_link:
+        job_result = await db.execute(select(JobPosting).where(JobPosting.id == app.job_posting_id))
+        job = job_result.scalar_one_or_none()
+        await _notify(
+            db,
+            app.seeker_id,
+            "Interview Scheduled",
+            f"An interview meeting link was added for \"{job.title if job else 'your application'}\".",
+            "application",
+            link="/app/applications",
+        )
+
     await db.flush()
     await db.refresh(app)
     return _to_response(app)
