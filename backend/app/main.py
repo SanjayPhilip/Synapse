@@ -25,6 +25,12 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Ensure all tables exist
+    from app.database import Base
+    import app.models  # noqa: F401
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
     # Startup - scheduler runs in worker process (python -m app.workers.worker_runner)
     print("[FastAPI] Application startup complete (scheduler runs in worker process)")
     
