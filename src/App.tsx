@@ -22,6 +22,8 @@ import { ApplicantsPage } from '@/pages/employer/ApplicantsPage';
 import { AnalyticsPage } from '@/pages/employer/AnalyticsPage';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { SettingsPage } from '@/pages/SettingsPage';
+import CompanyProfilePage from '@/pages/CompanyProfilePage';
+import ReferralsPage from '@/pages/seeker/ReferralsPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { ServerErrorPage } from '@/pages/ServerErrorPage';
 import { Spinner } from '@/components/ui';
@@ -167,6 +169,29 @@ function AppRoutes() {
         <ProtectedRoute>
           <AppShell activeModule="settings">
             <SettingsPage />
+          </AppShell>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/app/referrals" element={
+        <ProtectedRoute>
+          <AppShell activeModule="referrals">
+            <ReferralsPage />
+          </AppShell>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/company" element={
+        <ProtectedRoute>
+          <AppShell activeModule="company">
+            <CompanyProfilePage />
+          </AppShell>
+        </ProtectedRoute>
+      } />
+      <Route path="/company/:id" element={
+        <ProtectedRoute>
+          <AppShell activeModule="company">
+            <CompanyProfilePage />
           </AppShell>
         </ProtectedRoute>
       } />

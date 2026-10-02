@@ -366,3 +366,113 @@ export async function resetPassword(token: string, new_password: string): Promis
 export async function getSalaryNegotiationAdvice(data: SalaryNegotiationRequest): Promise<SalaryNegotiationResponse> {
   return api.post<SalaryNegotiationResponse>('/api/v1/salary/negotiate', data);
 }
+
+// ============ COMPANY PROFILES ============
+export interface CompanyProfile {
+  id: string;
+  employer_id: string;
+  company_name: string;
+  slug: string;
+  tagline?: string;
+  overview?: string;
+  website?: string;
+  logo_url?: string;
+  banner_url?: string;
+  industry?: string;
+  company_size?: string;
+  headquarters?: string;
+  perks: string[];
+  culture: string[];
+  social_links: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+  active_jobs_count?: number;
+}
+
+export async function listCompanies(q?: string): Promise<CompanyProfile[]> {
+  const url = q ? `/api/v1/companies?q=${encodeURIComponent(q)}` : '/api/v1/companies';
+  return api.get<CompanyProfile[]>(url);
+}
+
+export async function getCompany(slugOrId: string): Promise<CompanyProfile> {
+  return api.get<CompanyProfile>(`/api/v1/companies/${slugOrId}`);
+}
+
+export async function getMyCompany(): Promise<CompanyProfile> {
+  return api.get<CompanyProfile>('/api/v1/companies/me');
+}
+
+export async function updateMyCompany(data: Partial<CompanyProfile>): Promise<CompanyProfile> {
+  return api.put<CompanyProfile>('/api/v1/companies/me', data);
+}
+
+// ============ CANDIDATE NOTES (COLLABORATION) ============
+export interface CandidateNote {
+  id: string;
+  application_id: string;
+  author_id: string;
+  author_name?: string;
+  author_avatar?: string;
+  note_text: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getCandidateNotes(applicationId: string): Promise<CandidateNote[]> {
+  return api.get<CandidateNote[]>(`/api/v1/applications/${applicationId}/notes`);
+}
+
+export async function createCandidateNote(applicationId: string, note_text: string): Promise<CandidateNote> {
+  return api.post<CandidateNote>(`/api/v1/applications/${applicationId}/notes`, { note_text });
+}
+
+export async function deleteCandidateNote(applicationId: string, noteId: string): Promise<{ message: string }> {
+  return api.delete<{ message: string }>(`/api/v1/applications/${applicationId}/notes/${noteId}`);
+}
+
+// ============ REFERRALS ============
+export interface Referral {
+  id: string;
+  referral_code: string;
+  referee_email?: string;
+  status: string;
+  reward_points: number;
+  created_at: string;
+  claimed_at?: string;
+}
+
+export interface ReferralStats {
+  referral_code: string;
+  referral_link: string;
+  total_invites: number;
+  successful_referrals: number;
+  total_rewards_earned: number;
+  referrals: Referral[];
+}
+
+export async function getReferralStats(): Promise<ReferralStats> {
+  return api.get<ReferralStats>('/api/v1/referrals/stats');
+}
+
+export async function inviteFriend(referee_email?: string): Promise<Referral> {
+  return api.post<Referral>('/api/v1/referrals/invite', { referee_email });
+}
+
+export async function claimReferral(referral_code: string): Promise<{ message: string; reward_points: number }> {
+  return api.post<{ message: string; reward_points: number }>('/api/v1/referrals/claim', { referral_code });
+}
+
+// ============ SOCIAL / OAUTH LOGIN ============
+export interface OAuthLoginPayload {
+  provider: 'google' | 'linkedin' | 'github';
+  token: string;
+  role?: string;
+  email?: string;
+  name?: string;
+  avatar_url?: string;
+}
+
+export async function oauthLogin(data: OAuthLoginPayload): Promise<{ access_token: string; user: any }> {
+  return api.post<{ access_token: string; user: any }>('/api/v1/auth/oauth/login', data);
+}
+

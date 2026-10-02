@@ -354,3 +354,59 @@ class EmployerInvite(Base):
 
     employer = relationship("Profile", foreign_keys=[employer_id])
 
+
+class CandidateNote(Base):
+    __tablename__ = "candidate_notes"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    application_id = Column(GUID, ForeignKey("applications.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_id = Column(GUID, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    note_text = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    application = relationship("Application", backref="notes")
+    author = relationship("Profile", foreign_keys=[author_id])
+
+
+class CompanyProfile(Base):
+    __tablename__ = "company_profiles"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employer_id = Column(GUID, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    company_name = Column(String, nullable=False)
+    slug = Column(String, nullable=False, unique=True, index=True)
+    tagline = Column(String, nullable=True)
+    overview = Column(Text, nullable=True)
+    website = Column(String, nullable=True)
+    logo_url = Column(String, nullable=True)
+    banner_url = Column(String, nullable=True)
+    industry = Column(String, nullable=True)
+    company_size = Column(String, nullable=True)
+    headquarters = Column(String, nullable=True)
+    perks = Column(JSON, nullable=False, default=[])
+    culture = Column(JSON, nullable=False, default=[])
+    social_links = Column(JSON, nullable=False, default={})
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    employer = relationship("Profile", backref="company_profile")
+
+
+class Referral(Base):
+    __tablename__ = "referrals"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    referrer_id = Column(GUID, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    referral_code = Column(String, nullable=False, index=True)
+    referee_email = Column(String, nullable=True)
+    referee_id = Column(GUID, ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True, index=True)
+    status = Column(String, nullable=False, default="pending")  # pending, joined, rewarded
+    reward_points = Column(Integer, nullable=False, default=100)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    claimed_at = Column(DateTime, nullable=True)
+
+    referrer = relationship("Profile", foreign_keys=[referrer_id], backref="sent_referrals")
+    referee = relationship("Profile", foreign_keys=[referee_id], backref="claimed_referral")
+
+

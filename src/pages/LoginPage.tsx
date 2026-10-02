@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Brain, ArrowLeft, AlertCircle, Mail, Lock } from 'lucide-react';
 import { signIn } from '@/lib/auth';
-import { forgotPassword } from '@/lib/api';
+import { forgotPassword, oauthLogin } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import NeuralNetworkBg from '@/components/NeuralNetworkBg';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
@@ -20,6 +20,31 @@ export function LoginPage() {
   async function handleLoginSuccess() {
     await refreshProfile();
     navigate('/app');
+  }
+
+  async function handleOAuth(provider: 'google' | 'linkedin' | 'github') {
+    setError('');
+    setLoading(true);
+    try {
+      const mockEmail = `user.${provider}.${Math.floor(Math.random() * 1000)}@synapse.io`;
+      const res = await oauthLogin({
+        provider,
+        token: `oauth_token_${provider}_${Date.now()}`,
+        role,
+        email: mockEmail,
+        name: `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`,
+      });
+      if (res && res.access_token) {
+        localStorage.setItem('synapse_token', res.access_token);
+        localStorage.setItem('synapse_user', JSON.stringify(res.user));
+        localStorage.setItem('synapse_active_role', res.user.role || role);
+        await handleLoginSuccess();
+      }
+    } catch (err: any) {
+      setError(err.message || `Failed to sign in with ${provider}`);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -159,6 +184,50 @@ export function LoginPage() {
               Remember me
             </label>
           </form>
+
+          {/* Social Logins */}
+          <div className="mt-6">
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-slate-800"></div>
+              <span className="flex-shrink mx-3 text-xs text-slate-500">or continue with</span>
+              <div className="flex-grow border-t border-slate-800"></div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => handleOAuth('google')}
+                className="py-2 px-3 rounded-lg text-xs font-semibold bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                  <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+                  <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+                  <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.1s.7 5.4 1.9 7.8l3.7-2.9z"/>
+                  <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"/>
+                </svg>
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOAuth('linkedin')}
+                className="py-2 px-3 rounded-lg text-xs font-semibold bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5 fill-[#0A66C2]" viewBox="0 0 24 24">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                </svg>
+                LinkedIn
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOAuth('github')}
+                className="py-2 px-3 rounded-lg text-xs font-semibold bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
+                  <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+                </svg>
+                GitHub
+              </button>
+            </div>
+          </div>
 
           {/* Demo Accounts */}
           <div className="mt-6 border-t border-slate-700/50 pt-6">

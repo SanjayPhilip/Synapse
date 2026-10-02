@@ -1,6 +1,6 @@
 import { type ReactNode, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Brain, LayoutDashboard, FileText, Target, Briefcase, Bookmark, Settings, LogOut, Users, BarChart3, Menu, X, User2, Repeat, Shield, Bell, BellRing, Sun, Moon } from 'lucide-react';
+import { Brain, LayoutDashboard, FileText, Target, Briefcase, Bookmark, Settings, LogOut, Users, BarChart3, Menu, X, User2, Repeat, Shield, Bell, BellRing, Sun, Moon, Gift, Building2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ChatAssistant } from '@/components/ChatAssistant';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -29,6 +29,7 @@ export function AppShell({ children, activeModule }: { children: ReactNode; acti
     { id: 'jobs', label: 'Job Feed', icon: Briefcase, path: '/app/jobs' },
     { id: 'applications', label: 'Applications', icon: Bookmark, path: '/app/applications' },
     { id: 'alerts', label: 'Job Alerts', icon: BellRing, path: '/app/alerts' },
+    { id: 'referrals', label: 'Referrals & Rewards', icon: Gift, path: '/app/referrals' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/app/settings' },
   ];
 
@@ -36,6 +37,7 @@ export function AppShell({ children, activeModule }: { children: ReactNode; acti
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/app/dashboard' },
     { id: 'postings', label: 'My Postings', icon: Briefcase, path: '/app/postings' },
     { id: 'applicants', label: 'Applicants', icon: Users, path: '/app/applicants' },
+    { id: 'company', label: 'Company Brand', icon: Building2, path: '/company' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/app/analytics' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/app/settings' },
   ];

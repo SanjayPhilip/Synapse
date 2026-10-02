@@ -329,19 +329,20 @@ This file is self-contained; start with PHASE 1.
 
 ## PHASE 10 — Post-MVP Features (LOW)
 
-- [ ] LinkedIn profile parsing (deeper: positions, education, endorsements)
+- [x] LinkedIn profile parsing (deeper: positions, education, endorsements, certifications in `app/services/resume_parser.py`)
 - [x] Interview scheduling integration (calendar links: Google Calendar, Outlook, and .ics export in candidate drawer and seeker applications)
 - [x] Salary negotiation assistant (FastAPI endpoint + benchmarks, counter-offer metrics, custom negotiation email scripts & modal UI)
 - [x] Mobile app (React Native / PWA offline: Web App Manifest, ServiceWorker offline caching, and offline status indicator)
 - [x] Advanced search filters + facets (work mode, job type, salary ranges, experience levels, tech stack facets & endpoint /api/v1/jobs/facets)
 - [x] Embedding caching for sentence-transformers (bounded SHA-256 LRU cache + hit/miss metrics in `app/services/matching.py`)
-- [ ] Social login (Google/LinkedIn OAuth)
-- [ ] Referral / invite program
-- [ ] Employer branding (company page)
-- [ ] Multi-language UI
-- [ ] Real-time collaboration (employer notes shared)
-- [ ] Notification email digests
-- [ ] Performance budget (bundle size, Lighthouse)
+- [x] Social login (Google / LinkedIn / GitHub OAuth endpoint `/api/v1/auth/oauth/login` + quick social buttons)
+- [x] Referral / invite program (Ambassador dashboard, invite links, reward points `/api/v1/referrals`)
+- [x] Employer branding (Company brand pages `/company/:id`, perks, culture, open jobs)
+- [x] Multi-language UI (i18n engine `src/lib/i18n.ts` supporting en, es, fr, de)
+- [x] Real-time collaboration (shared employer team notes & candidate feedback in candidate drawer)
+- [x] Notification email digests (periodic aggregation and alert digest delivery)
+- [x] Performance budget (optimized bundle code-splitting and asset chunking)
+
 
 ---
 

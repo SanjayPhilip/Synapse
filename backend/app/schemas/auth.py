@@ -101,3 +101,17 @@ class VerifyEmailRequest(BaseModel):
 
 class VerifyEmailResponse(BaseModel):
     message: str
+
+
+class OAuthLoginRequest(BaseModel):
+    provider: str  # google, linkedin, github
+    token: str     # id_token or authorization_code
+    role: Optional[str] = "seeker"
+    email: Optional[str] = None
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+
+class OAuthProvidersResponse(BaseModel):
+    providers: list[dict]
+

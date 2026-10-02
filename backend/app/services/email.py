@@ -112,3 +112,32 @@ def send_job_alert_email(seeker_email: str, seeker_name: str, matches: list[dict
             for job in matches
         ),
     )
+
+
+def send_interview_invitation_email(
+    to: str,
+    candidate_name: str,
+    job_title: str,
+    company_name: str,
+    interview_link: str,
+    scheduled_time: str | None = None,
+):
+    """Sends an interview meeting invitation email with direct video link and calendar action."""
+    app_url = f"{get_settings().APP_BASE_URL}/app/applications"
+    time_info = f"<p><strong>Scheduled Time:</strong> {scheduled_time}</p>" if scheduled_time else ""
+    _send_email(
+        to=to,
+        subject=f"Interview Invitation: {job_title} at {company_name}",
+        html=f"""
+        <h2>Interview Invitation</h2>
+        <p>Dear {candidate_name},</p>
+        <p>Congratulations! <strong>{company_name}</strong> has invited you for an interview for the <strong>{job_title}</strong> role.</p>
+        {time_info}
+        <p><strong>Meeting / Video Link:</strong> <a href="{interview_link}" target="_blank">{interview_link}</a></p>
+        <p>You can also access your application details and calendar invite on Synapse:</p>
+        <p><a href="{app_url}" style="display:inline-block;padding:10px 18px;background-color:#18bfef;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;">View on Synapse</a></p>
+        <p>Best regards,<br/>The {company_name} Hiring Team & Synapse</p>
+        """,
+        text=f"Interview Invitation: {job_title} at {company_name}\n\nDear {candidate_name},\n{company_name} has invited you for an interview for {job_title}.\nMeeting link: {interview_link}\n{f'Time: {scheduled_time}' if scheduled_time else ''}\n\nView on Synapse: {app_url}",
+    )
+

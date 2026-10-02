@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.middleware.observability import RequestContextMiddleware, register_error_handlers
 from app.middleware.rate_limit import RateLimitMiddleware
-from app.routers import auth, resumes, jobs, applications, matching, chat, saved_jobs, rewrites, auto_apply, admin, notifications, ws, job_alerts, external_jobs, profile, security, analytics, employer_invites, salary
+from app.routers import auth, resumes, jobs, applications, matching, chat, saved_jobs, rewrites, auto_apply, admin, notifications, ws, job_alerts, external_jobs, profile, security, analytics, employer_invites, salary, companies, referrals
 from app.database import get_db, engine
 from app.workers import celery_app
 
@@ -108,6 +108,8 @@ app.include_router(analytics.router)
 app.include_router(security.router)
 app.include_router(employer_invites.router)
 app.include_router(salary.router)
+app.include_router(companies.router)
+app.include_router(referrals.router)
 
 
 # SPA fallback: serve index.html for all non-API routes

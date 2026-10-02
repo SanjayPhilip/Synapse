@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models import Resume, Profile
 from app.schemas.resume import ResumeCreate, ResumeUpdate, ResumeResponse, ResumeParseRequest, ResumeParseResponse
 from app.middleware.auth import get_current_user
-from app.services.resume_parser import parse_resume_text, extract_skills_from_data
+from app.services.resume_parser import parse_resume_text, extract_skills_from_data, parse_linkedin_profile_text
 from app.services.gemini import parse_resume_with_ai
 from app.services.matching import recompute_scores_for_resume
 
@@ -73,7 +73,8 @@ async def parse_resume_text_endpoint(
     current_user: Profile = Depends(get_current_user),
 ):
     raw_text = data.raw_text
-    parsed_data = parse_resume_text(raw_text)
+    is_linkedin = "linkedin.com" in raw_text.lower() or "skills & endorsements" in raw_text.lower() or "licenses & certifications" in raw_text.lower()
+    parsed_data = parse_linkedin_profile_text(raw_text) if is_linkedin else parse_resume_text(raw_text)
     skills = extract_skills_from_data(parsed_data)
 
     try:
@@ -106,7 +107,8 @@ async def upload_resume(
 
     raw_text = extract_text_from_file(content, file_type)
 
-    parsed_data = parse_resume_text(raw_text)
+    is_linkedin = "linkedin.com" in raw_text.lower() or "skills & endorsements" in raw_text.lower() or "licenses & certifications" in raw_text.lower()
+    parsed_data = parse_linkedin_profile_text(raw_text) if is_linkedin else parse_resume_text(raw_text)
     skills = extract_skills_from_data(parsed_data)
 
     try:

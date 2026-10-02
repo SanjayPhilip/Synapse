@@ -187,3 +187,158 @@ SKILL_SYNONYMS = {
 def _normalize_skill(skill: str) -> str:
     key = skill.strip().lower()
     return SKILL_SYNONYMS.get(key, skill.strip())
+
+
+def parse_linkedin_profile_text(raw_text: str) -> dict:
+    """
+    Parses LinkedIn text export / copied profile sections:
+    - Contact (Name, Headline, Email, LinkedIn URL, Location)
+    - Summary / About
+    - Experience (Positions, Company, Dates, Location, Responsibilities)
+    - Education (School, Degree, Field of Study, Dates, Grade)
+    - Skills & Endorsements (Skills + Endorsement counts)
+    - Certifications & Licenses
+    """
+    lines = [l.strip() for l in raw_text.split("\n") if l.strip()]
+    data = {
+        "contact": {},
+        "summary": "",
+        "skills": [],
+        "experience": [],
+        "education": [],
+        "certifications": [],
+        "endorsements": {},
+    }
+
+    # Email, phone, linkedin url
+    email_match = re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', raw_text)
+    if email_match:
+        data["contact"]["email"] = email_match.group()
+
+    phone_match = re.search(r'(?:\+?\d{1,3}[\s-]?)?(?:\(\d+\)[\s-]?)?\d[\d\s-]{7,12}\d', raw_text)
+    if phone_match:
+        data["contact"]["phone"] = phone_match.group().strip()
+
+    li_match = re.search(r'linkedin\.com/(in/[\w-]+)', raw_text, re.I)
+    if li_match:
+        data["contact"]["linkedin"] = f"linkedin.com/{li_match.group(1)}"
+
+    # Name extraction (LinkedIn typically has name on top line)
+    for line in lines[:3]:
+        if not re.search(r'(@|linkedin\.com|contact|experience|about)', line, re.I) and 2 < len(line) < 50:
+            data["contact"]["name"] = line
+            break
+
+    # Extract sections
+    current_section = None
+    section_map = {
+        "about": "summary",
+        "summary": "summary",
+        "experience": "experience",
+        "work experience": "experience",
+        "education": "education",
+        "skills": "skills",
+        "skills & endorsements": "skills",
+        "top skills": "skills",
+        "licenses & certifications": "certifications",
+        "certifications": "certifications",
+        "honors & awards": "certifications",
+    }
+
+    buffer_lines = []
+    
+    def flush_section(sec_name, sec_lines):
+        if not sec_lines or not sec_name:
+            return
+        if sec_name == "summary":
+            data["summary"] = "\n".join(sec_lines)[:600]
+        elif sec_name == "skills":
+            for sl in sec_lines:
+                # Matches patterns like "Python · 15 endorsements" or "React (12)" or comma separated
+                endorsed = re.search(r'([A-Za-z0-9#+.\s-]+?)(?:\s*[·•\(\[]\s*(\d+)\s*(?:endorsements?)?[\)\]]?|$)', sl)
+                if endorsed:
+                    skill_name = _normalize_skill(endorsed.group(1))
+                    if 1 < len(skill_name) < 40 and not re.match(r'^(see\s+more|endorsements?|skills)$', skill_name, re.I):
+                        if skill_name not in data["skills"]:
+                            data["skills"].append(skill_name)
+                        if endorsed.group(2):
+                            data["endorsements"][skill_name] = int(endorsed.group(2))
+                else:
+                    for chunk in re.split(r'[,|•·]', sl):
+                        sn = _normalize_skill(chunk.strip())
+                        if 1 < len(sn) < 40 and sn not in data["skills"]:
+                            data["skills"].append(sn)
+        elif sec_name == "experience":
+            # Parse LinkedIn position blocks
+            idx = 0
+            while idx < len(sec_lines):
+                title_line = sec_lines[idx]
+                idx += 1
+                company_line = sec_lines[idx] if idx < len(sec_lines) else ""
+                date_str = ""
+                desc = []
+                # Check for dates in next few lines
+                while idx < len(sec_lines):
+                    l = sec_lines[idx]
+                    date_m = re.search(r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4})\s*(\d{4})?\s*[-–]\s*(Present|\w+\s*\d{4}|\d{4})', l, re.I)
+                    if date_m:
+                        date_str = l
+                        idx += 1
+                        break
+                    elif idx > 2:
+                        break
+                    idx += 1
+                while idx < len(sec_lines):
+                    l = sec_lines[idx]
+                    # if looks like a new role or company, break
+                    if re.match(r'^(full-time|part-time|contract|internship)', l, re.I):
+                        idx += 1
+                        continue
+                    if len(l) > 10 and not re.search(r'(\d{4}\s*[-–])', l):
+                        desc.append(l)
+                    idx += 1
+                data["experience"].append({
+                    "title": title_line,
+                    "company": company_line,
+                    "dates": date_str,
+                    "description": " ".join(desc)[:400]
+                })
+        elif sec_name == "education":
+            for el in sec_lines:
+                deg_match = re.search(r'(bachelor|master|b\.?s|m\.?s|b\.?tech|ph\.?d|degree|diploma)', el, re.I)
+                if deg_match or len(data["education"]) == 0 or "institution" not in data["education"][-1]:
+                    data["education"].append({
+                        "institution": el,
+                        "degree": deg_match.group() if deg_match else ""
+                    })
+                elif len(data["education"]) > 0:
+                    data["education"][-1]["degree"] = el
+        elif sec_name == "certifications":
+            for cl in sec_lines:
+                if len(cl) > 3 and not re.match(r'^(issued|credential)', cl, re.I):
+                    data["certifications"].append({"name": cl, "issuer": ""})
+
+    for line in lines:
+        lower = line.lower().strip()
+        matched_sec = None
+        for key, val in section_map.items():
+            if lower == key or lower.startswith(f"{key}:") or lower == f"{key} /":
+                matched_sec = val
+                break
+        if matched_sec:
+            if current_section:
+                flush_section(current_section, buffer_lines)
+            current_section = matched_sec
+            buffer_lines = []
+        else:
+            if current_section:
+                buffer_lines.append(line)
+
+    if current_section and buffer_lines:
+        flush_section(current_section, buffer_lines)
+
+    # Fallback to standard parser if not enough fields filled
+    if not data["skills"] and not data["experience"]:
+        return parse_resume_text(raw_text)
+    return data
+

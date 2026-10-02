@@ -4,8 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from app.database import get_db
-from app.models import Application, JobPosting, Profile, Notification, ApplicationStatusHistory
-from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse, ApplicationHistoryResponse
+from app.models import Application, JobPosting, Profile, Notification, ApplicationStatusHistory, CandidateNote
+from app.schemas.application import (
+    ApplicationCreate, ApplicationUpdate, ApplicationResponse,
+    ApplicationHistoryResponse, CandidateNoteCreate, CandidateNoteResponse
+)
 from app.middleware.auth import get_current_user
 from app.pagination import make_page
 
@@ -283,6 +286,19 @@ async def update_application(
             "application",
             link="/app/applications",
         )
+        # Send direct interview booking invitation email with calendar link
+        from app.services.email import send_interview_invitation_email
+        seeker_result = await db.execute(select(Profile).where(Profile.id == app.seeker_id))
+        seeker = seeker_result.scalar_one_or_none()
+        if seeker and job:
+            company_name = current_user.company_name or current_user.full_name or "Hiring Team"
+            send_interview_invitation_email(
+                to=seeker.email,
+                candidate_name=seeker.full_name,
+                job_title=job.title,
+                company_name=company_name,
+                interview_link=app.interview_link,
+            )
 
     await db.flush()
     await db.refresh(app)
@@ -301,3 +317,106 @@ async def get_application_history(
         .order_by(ApplicationStatusHistory.created_at.asc())
     )
     return result.scalars().all()
+
+
+@router.get("/{application_id}/notes", response_model=list[CandidateNoteResponse])
+async def list_candidate_notes(
+    application_id: uuid.UUID,
+    current_user: Profile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Verify employer / admin / member access
+    result = await db.execute(
+        select(CandidateNote)
+        .where(CandidateNote.application_id == application_id)
+        .options(selectinload(CandidateNote.author))
+        .order_by(CandidateNote.created_at.asc())
+    )
+    notes = result.scalars().all()
+    out = []
+    for n in notes:
+        out.append(CandidateNoteResponse(
+            id=n.id,
+            application_id=n.application_id,
+            author_id=n.author_id,
+            author_name=n.author.full_name if n.author else "Team Member",
+            author_avatar=n.author.avatar_url if n.author else None,
+            note_text=n.note_text,
+            created_at=n.created_at,
+            updated_at=n.updated_at,
+        ))
+    return out
+
+
+@router.post("/{application_id}/notes", response_model=CandidateNoteResponse)
+async def create_candidate_note(
+    application_id: uuid.UUID,
+    data: CandidateNoteCreate,
+    current_user: Profile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not data.note_text.strip():
+        raise HTTPException(status_code=400, detail="Note text cannot be empty")
+
+    app_res = await db.execute(
+        select(Application)
+        .where(Application.id == application_id)
+        .options(selectinload(Application.job_posting))
+    )
+    app = app_res.scalar_one_or_none()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    note = CandidateNote(
+        application_id=application_id,
+        author_id=current_user.id,
+        note_text=data.note_text.strip(),
+    )
+    db.add(note)
+    await db.flush()
+    await db.refresh(note)
+
+    # Push real-time WS notification to employer team
+    from app.routers.ws import send_to_user
+    if app.job_posting and app.job_posting.employer_id != current_user.id:
+        await send_to_user(app.job_posting.employer_id, {
+            "type": "candidate_note",
+            "data": {
+                "application_id": str(application_id),
+                "author_name": current_user.full_name,
+                "note_text": note.note_text,
+            }
+        })
+
+    return CandidateNoteResponse(
+        id=note.id,
+        application_id=note.application_id,
+        author_id=note.author_id,
+        author_name=current_user.full_name,
+        author_avatar=current_user.avatar_url,
+        note_text=note.note_text,
+        created_at=note.created_at,
+        updated_at=note.updated_at,
+    )
+
+
+@router.delete("/{application_id}/notes/{note_id}")
+async def delete_candidate_note(
+    application_id: uuid.UUID,
+    note_id: uuid.UUID,
+    current_user: Profile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await db.execute(
+        select(CandidateNote).where(CandidateNote.id == note_id, CandidateNote.application_id == application_id)
+    )
+    note = res.scalar_one_or_none()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    if note.author_id != current_user.id and current_user.role not in ("admin", "employer"):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this note")
+
+    await db.delete(note)
+    await db.flush()
+    return {"message": "Note deleted successfully"}
+

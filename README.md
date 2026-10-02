@@ -1,7 +1,7 @@
 # ⚡ SYNAPSE — AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform
 
 **Team No. 05** — *Sanjay Philip · Akshay K R · Devika S*
-**Version**: 2.7.0 (Employer Team Invites, Full Multi-Tier Tests, Worker Runner, DB Backup Utility)
+**Version**: 2.8.0 (Company Branding, Ambassador Referrals, Social OAuth, Team Notes, i18n, Salary Negotiation)
 
 ---
 
@@ -12,8 +12,8 @@
 
 Unlike conventional job portals that act purely as listing funnels, SYNAPSE is built around **one bidirectional matching engine** that serves both job seekers and employers, with centralized oversight for platform administrators:
 
-- **Job Seekers**: Upload resumes, get structured JSON parsing, receive instant fit scores against job descriptions with itemized gap reports, filter jobs by specialized domain feeds, receive AI-suggested grounded experience rewrites, and manage account credentials with password reset capabilities.
-- **Employers**: Post job openings with custom automated screening thresholds, manage employer team member invites with token verification, receive automatically ranked candidate shortlists with transparent gap explanations, auto-approve/shortlist top candidates or auto-reject low-fit candidates for high-volume pipelines, and query candidate pools conversationally.
+- **Job Seekers**: Upload resumes, get structured JSON parsing, receive instant fit scores against job descriptions with itemized gap reports, filter jobs by specialized domain feeds, receive AI-suggested grounded experience rewrites, explore employer brand company pages, earn rewards through the ambassador referral program, and manage account credentials with password reset & social OAuth capabilities.
+- **Employers**: Post job openings with custom automated screening thresholds, manage employer team member invites with token verification, collaborate on candidate evaluations via real-time team feedback notes, customize public company branding pages, receive automatically ranked candidate shortlists with transparent gap explanations, auto-approve/shortlist top candidates or auto-reject low-fit candidates for high-volume pipelines, and query candidate pools conversationally.
 - **Administrators**: Monitor platform metrics, manage users, oversee job postings, and audit system activities.
 
 ---
@@ -32,15 +32,18 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 
 ### 👨‍💻 For Job Seekers
 - ✔️ **Categorized Domain Job Feeds** — Interactive domain filter pills (*Software Engineering*, *Business & MBA*, *Data Analytics*, *Data Science & AI*, *Cloud & DevOps*, *Finance & Accounting*, *Marketing & Sales*) to quickly discover listings tailored to specific fields.
-- ✔️ **Resume Upload & Parsing** — Support for PDF/DOCX/TXT uploads with automatic extraction into structured JSON (skills, experience, education).
+- ✔️ **Resume Upload & Parsing** — Support for PDF/DOCX/TXT uploads with automatic extraction into structured JSON (skills, experience, education, LinkedIn profile imports).
 - ✔️ **Match Score & Gap Report** — Calculates fit score using **40% Keyword Match + 60% Dense Semantic Similarity** (`all-MiniLM-L6-v2` embeddings), detailing missing skills and match highlights.
+- ✔️ **Salary Negotiation Assistant** — AI counter-offer strategies, market compensation benchmarks, and custom negotiation scripts.
+- ✔️ **Ambassador Referral Program** — Referral code generation, invite links, and reward point tracking.
+- ✔️ **Social OAuth Login** — One-click authentication with Google, LinkedIn, and GitHub.
 - ✔️ **Grounded Resume Rewrites** — AI-powered experience rewriting suggestions that improve weak bullet points without fabricating experience (Gemini API).
 - ✔️ **Context-Aware AI Chat Assistant** — Floating assistant widget that answers questions about job fit, resume recommendations, and application status.
 - ✔️ **External Job Search** — Live search across Adzuna + JSearch APIs with cross-source deduplication, DB-as-cache (serves cached results with a `stale` flag when providers are unreachable), and save/apply flows that materialize external listings into tracked Saved Jobs / the Auto-Apply queue.
 - ✔️ **Job Feed Upgrades** — Sort jobs by match score, newest, or salary; filter by location; view full job details in a modal before applying.
 - ✔️ **500 Error Page** — Dedicated `/500` error page with retry and home navigation.
 - ✔️ **Settings Security** — Password change form in Settings with current-password verification and confirmation.
-- 🧪 **Opt-In Auto-Apply** — Per-listing workflow that queues an automated application attempt against external listings (`auto_apply_logs` pending queue). *Note: the current build queues the attempt and redirects to the source site; the headless-browser automation engine (worker) is item 1 on the roadmap.*
+- ✔️ **Opt-In Auto-Apply** — Per-listing workflow that queues an automated application attempt against external listings (`auto_apply_logs` pending queue) and worker runner automation.
 - ✔️ **Account Recovery & Password Reset** — Forgot-password flow emails a time-limited reset link (30-min JWT token); demo mode surfaces the link in the UI.
 - ✔️ **Email Verification on Registration** — New accounts require email verification before login; verification link is emailed (real SMTP when configured, else demo) and can be re-sent via `POST /auth/resend-verification`.
 - ✔️ **Rate Limiting** — In-memory rate limiter on auth endpoints (register: 5/60s, login: 10/60s, forgot-password: 3/60s, change-password: 5/60s) to mitigate brute-force attacks.
@@ -53,8 +56,10 @@ Unlike conventional job portals that act purely as listing funnels, SYNAPSE is b
 - ✔️ **Topbar Search** — Seeker header search filters the job feed via `/app/jobs?q=...`.
 
 ### 🏢 For Employers
+- ✔️ **Company Brand Pages** — Public company overview page with banner, perks, culture, and active job listings, plus self-serve employer editing (`/company/:id`).
+- ✔️ **Real-Time Team Collaboration** — Shared hiring notes and feedback per candidate in candidate drawer.
+- ✔️ **Interview Calendar Scheduling** — Instant Google Calendar, Outlook, and `.ics` event generation for candidate interviews.
 - ✔️ **Employer Team Member Invites** — Create, list, and revoke team member invitations (`/api/v1/employers/invites`) with token expiration and email delivery.
-
 - ✔️ **High-Volume Application Auto-Screening**:
   - **Auto-Shortlist / Approve**: Candidates scoring ≥ threshold (e.g. 85%) are automatically moved to `"shortlisted"`.
   - **Auto-Reject**: Candidates scoring < threshold (e.g. 50%) are automatically set to `"rejected"`.

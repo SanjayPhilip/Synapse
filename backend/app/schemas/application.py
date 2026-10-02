@@ -46,3 +46,22 @@ class ApplicationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CandidateNoteCreate(BaseModel):
+    note_text: str
+
+
+class CandidateNoteResponse(BaseModel):
+    id: UUID
+    application_id: UUID
+    author_id: UUID
+    author_name: Optional[str] = None
+    author_avatar: Optional[str] = None
+    note_text: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+

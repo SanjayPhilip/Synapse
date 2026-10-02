@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Users, Star, CheckCircle2, XCircle, ChevronRight, Lightbulb, Download, Search, Calendar, Video, Link2 } from 'lucide-react';
+import { Users, Star, CheckCircle2, XCircle, ChevronRight, Lightbulb, Download, Search, Calendar, Video, Link2, MessageSquare, Trash2, Send } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSearchParams } from 'react-router-dom';
-import { getJobPostings, getApplicationsForJob, updateApplication, getGapExplanation, getApplicationHistory } from '@/lib/api';
+import {
+  getJobPostings, getApplicationsForJob, updateApplication,
+  getGapExplanation, getApplicationHistory, getCandidateNotes,
+  createCandidateNote, deleteCandidateNote, type CandidateNote
+} from '@/lib/api';
 import { api } from '@/lib/api-client';
 import { computeMatchScore } from '@/lib/matching';
 import { getGoogleCalendarUrl, getOutlookCalendarUrl, downloadIcsFile } from '@/lib/calendar';
@@ -89,6 +93,42 @@ export function ApplicantsPage() {
       setInterviewDate('');
     }
   }, [selectedApplicant]);
+
+  const [candidateNotes, setCandidateNotes] = useState<CandidateNote[]>([]);
+  const [newNoteText, setNewNoteText] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+
+  useEffect(() => {
+    if (!selectedApplicant) { setCandidateNotes([]); return; }
+    (async () => {
+      try { setCandidateNotes(await getCandidateNotes(selectedApplicant.id)); } catch { setCandidateNotes([]); }
+    })();
+  }, [selectedApplicant]);
+
+  async function handleAddNote(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedApplicant || !newNoteText.trim()) return;
+    setAddingNote(true);
+    try {
+      const note = await createCandidateNote(selectedApplicant.id, newNoteText.trim());
+      setCandidateNotes(prev => [...prev, note]);
+      setNewNoteText('');
+    } catch (e) {
+      console.error('Failed to add candidate note:', e);
+    } finally {
+      setAddingNote(false);
+    }
+  }
+
+  async function handleDeleteNote(noteId: string) {
+    if (!selectedApplicant) return;
+    try {
+      await deleteCandidateNote(selectedApplicant.id, noteId);
+      setCandidateNotes(prev => prev.filter(n => n.id !== noteId));
+    } catch (e) {
+      console.error('Failed to delete note:', e);
+    }
+  }
 
   async function handleSaveInterview() {
     if (!selectedApplicant) return;
@@ -394,6 +434,59 @@ export function ApplicantsPage() {
                         </div>
                       );
                     })()}
+                  </div>
+
+                  {/* Real-Time Team Collaboration Notes */}
+                  <div className="border-t border-slate-800 pt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <MessageSquare className="h-3.5 w-3.5 text-purple-400" /> Team Feedback & Notes
+                      </span>
+                      <span className="text-[10px] text-slate-400">{candidateNotes.length} notes</span>
+                    </div>
+
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {candidateNotes.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic">No notes added yet. Collaborate with your team below.</p>
+                      ) : (
+                        candidateNotes.map((n) => (
+                          <div key={n.id} className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs flex justify-between items-start gap-2">
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="font-semibold text-purple-300">{n.author_name || 'Team Member'}</span>
+                                <span className="text-[10px] text-slate-500">{new Date(n.created_at).toLocaleDateString()}</span>
+                              </div>
+                              <p className="text-slate-200">{n.note_text}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteNote(n.id)}
+                              className="text-slate-500 hover:text-red-400 p-1"
+                              title="Delete note"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <form onSubmit={handleAddNote} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newNoteText}
+                        onChange={(e) => setNewNoteText(e.target.value)}
+                        placeholder="Add hiring note / interview feedback..."
+                        className={`${inputClass} text-xs py-1.5 flex-1`}
+                      />
+                      <button
+                        type="submit"
+                        disabled={addingNote || !newNoteText.trim()}
+                        className="btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1"
+                      >
+                        <Send className="h-3 w-3" /> {addingNote ? '...' : 'Add'}
+                      </button>
+                    </form>
                   </div>
 
                   <div className="flex flex-wrap gap-2 border-t border-slate-800 pt-4">
