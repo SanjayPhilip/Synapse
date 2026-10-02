@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     SMTP_PASS: str = ""
     SMTP_FROM: str = "Synapse <noreply@synapse.local>"
     APP_BASE_URL: str = "http://localhost:5173"
+    
+    # OAuth Providers
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    LINKEDIN_CLIENT_ID: str = ""
+    LINKEDIN_CLIENT_SECRET: str = ""
 
     CORS_ORIGINS: list[str] = [
         "http://localhost:5173",

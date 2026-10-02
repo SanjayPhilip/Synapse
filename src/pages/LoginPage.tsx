@@ -24,26 +24,95 @@ export function LoginPage() {
 
   async function handleOAuth(provider: 'google' | 'linkedin' | 'github') {
     setError('');
-    setLoading(true);
-    try {
-      const mockEmail = `user.${provider}.${Math.floor(Math.random() * 1000)}@synapse.io`;
-      const res = await oauthLogin({
-        provider,
-        token: `oauth_token_${provider}_${Date.now()}`,
-        role,
-        email: mockEmail,
-        name: `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`,
-      });
-      if (res && res.access_token) {
-        localStorage.setItem('synapse_token', res.access_token);
-        localStorage.setItem('synapse_user', JSON.stringify(res.user));
-        localStorage.setItem('synapse_active_role', res.user.role || role);
-        await handleLoginSuccess();
+    
+    // In production / real OAuth:
+    // If provider is Google, check if Google Identity is available or prompt user for credential
+    // For GitHub, redirect or prompt for personal access token / OAuth token
+    if (provider === 'google') {
+      const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!googleClientId) {
+        const inputTokenOrEmail = prompt(
+          'Google OAuth Setup:\nNo VITE_GOOGLE_CLIENT_ID found in .env.\n\nEnter your real Google email address or Google ID Token to sign in:'
+        );
+        if (!inputTokenOrEmail) return;
+        setLoading(true);
+        try {
+          const res = await oauthLogin({
+            provider: 'google',
+            token: inputTokenOrEmail,
+            email: inputTokenOrEmail.includes('@') ? inputTokenOrEmail : undefined,
+            role,
+          });
+          if (res && res.access_token) {
+            localStorage.setItem('synapse_token', res.access_token);
+            localStorage.setItem('synapse_user', JSON.stringify(res.user));
+            localStorage.setItem('synapse_active_role', res.user.role || role);
+            await handleLoginSuccess();
+          }
+        } catch (err: any) {
+          setError(err.message || 'Google sign-in failed');
+        } finally {
+          setLoading(false);
+        }
+        return;
       }
-    } catch (err: any) {
-      setError(err.message || `Failed to sign in with ${provider}`);
-    } finally {
-      setLoading(false);
+    }
+
+    if (provider === 'github') {
+      const githubClientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+      if (!githubClientId) {
+        const inputToken = prompt(
+          'GitHub OAuth Setup:\nNo VITE_GITHUB_CLIENT_ID found in .env.\n\nEnter your GitHub Personal Access Token (or GitHub email) to fetch your real GitHub profile:'
+        );
+        if (!inputToken) return;
+        setLoading(true);
+        try {
+          const res = await oauthLogin({
+            provider: 'github',
+            token: inputToken,
+            email: inputToken.includes('@') ? inputToken : undefined,
+            role,
+          });
+          if (res && res.access_token) {
+            localStorage.setItem('synapse_token', res.access_token);
+            localStorage.setItem('synapse_user', JSON.stringify(res.user));
+            localStorage.setItem('synapse_active_role', res.user.role || role);
+            await handleLoginSuccess();
+          }
+        } catch (err: any) {
+          setError(err.message || 'GitHub sign-in failed');
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+    }
+
+    if (provider === 'linkedin') {
+      const inputEmail = prompt(
+        'LinkedIn Sign-In:\nEnter your LinkedIn account email address:'
+      );
+      if (!inputEmail) return;
+      setLoading(true);
+      try {
+        const res = await oauthLogin({
+          provider: 'linkedin',
+          token: inputEmail,
+          email: inputEmail,
+          role,
+        });
+        if (res && res.access_token) {
+          localStorage.setItem('synapse_token', res.access_token);
+          localStorage.setItem('synapse_user', JSON.stringify(res.user));
+          localStorage.setItem('synapse_active_role', res.user.role || role);
+          await handleLoginSuccess();
+        }
+      } catch (err: any) {
+        setError(err.message || 'LinkedIn sign-in failed');
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
   }
 

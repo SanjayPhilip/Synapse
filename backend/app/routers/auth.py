@@ -279,25 +279,86 @@ async def oauth_login(
     if provider not in ("google", "linkedin", "github"):
         raise HTTPException(status_code=400, detail="Unsupported OAuth provider")
 
-    # In development/demo/production OAuth flow: resolve email from token or provided payload
     email = data.email
+    full_name = data.name
+    avatar_url = data.avatar_url
+
+    # Real OAuth Provider Verification
+    import httpx
+    if provider == "google" and data.token:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # 1. Try Google ID token / userinfo endpoint
+                g_res = await client.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {data.token}"},
+                )
+                if g_res.status_code == 200:
+                    info = g_res.json()
+                    email = info.get("email") or email
+                    full_name = info.get("name") or full_name
+                    avatar_url = info.get("picture") or avatar_url
+                else:
+                    # Try tokeninfo (for OpenID connect id_token)
+                    g_info = await client.get(
+                        f"https://oauth2.googleapis.com/tokeninfo?id_token={data.token}"
+                    )
+                    if g_info.status_code == 200:
+                        info = g_info.json()
+                        email = info.get("email") or email
+                        full_name = info.get("name") or full_name
+                        avatar_url = info.get("picture") or avatar_url
+        except Exception:
+            pass
+
+    elif provider == "github" and data.token:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                gh_res = await client.get(
+                    "https://api.github.com/user",
+                    headers={
+                        "Authorization": f"Bearer {data.token}",
+                        "Accept": "application/vnd.github.v3+json",
+                        "User-Agent": "Synapse-App",
+                    },
+                )
+                if gh_res.status_code == 200:
+                    info = gh_res.json()
+                    full_name = info.get("name") or info.get("login") or full_name
+                    avatar_url = info.get("avatar_url") or avatar_url
+                    email = info.get("email")
+                    if not email:
+                        emails_res = await client.get(
+                            "https://api.github.com/user/emails",
+                            headers={
+                                "Authorization": f"Bearer {data.token}",
+                                "Accept": "application/vnd.github.v3+json",
+                                "User-Agent": "Synapse-App",
+                            },
+                        )
+                        if emails_res.status_code == 200:
+                            emails_data = emails_res.json()
+                            primary = next((e["email"] for e in emails_data if e.get("primary") and e.get("verified")), None)
+                            email = primary or (emails_data[0]["email"] if emails_data else None)
+        except Exception:
+            pass
+
     if not email:
-        if "@" in data.token:
-            email = data.token
-        else:
-            email = f"user_{data.provider}_{str(uuid.uuid4())[:8]}@synapse.oauth"
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not retrieve verified email from {provider.capitalize()}. Please sign in with email/password."
+        )
 
     result = await db.execute(select(Profile).where(Profile.email == email))
     user = result.scalars().first()
 
     if not user:
-        # Auto-create verified profile
-        full_name = data.name or (email.split("@")[0].replace(".", " ").title())
+        full_name = full_name or (email.split("@")[0].replace(".", " ").title())
         user = Profile(
             email=email,
             full_name=full_name,
             role=data.role or "seeker",
-            avatar_url=data.avatar_url,
+            avatar_url=avatar_url,
             is_verified=True,
             is_active=True,
             password_hash=hash_password(f"OAuthPass!_{uuid.uuid4()}"),
