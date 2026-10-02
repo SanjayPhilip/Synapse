@@ -275,10 +275,9 @@ To test the application immediately:
 
 ## 🗺️ Project Roadmap (Planned Enhancements)
 
-- 📅 **Interview Scheduler** — Built-in calendar scheduling for short-listed candidates.
-- 📱 **Mobile App Companion** — React Native / PWA offline application.
 - 💬 **Employer ↔ Candidate Messaging** — Direct two-way messaging between recruiters and applicants.
-- 🔑 **OAuth Social Login** — Google / LinkedIn single sign-on.
+- 🏢 **ATS Integration Webhooks** — Webhook exports for external applicant tracking systems (Greenhouse, Lever).
+- 🎙️ **AI Voice Interview Practice** — Interactive mock interview simulator for job seekers.
 
 ---
 
@@ -291,14 +290,16 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 - ✅ **In-app notifications** — notification table + bell UI: seeker notified on application status change (auto-shortlist / auto-reject / employer decision); employer notified on new application.
 - ✅ **Job alerts** — "notify me when a new job matches my resume" (subscribe to a domain feed / saved job; alert on new matching posting).
 - ✅ **Background / scheduled matching** — match scores are recomputed automatically when a resume or job posting changes.
-- 🔲 **Employer ↔ seeker messaging** — the chat assistant is an AI bot; no direct two-way contact between employer and candidate.
+- 🔲 **Employer ↔ seeker messaging** — the chat assistant is an AI bot; direct two-way chat between employer and candidate is planned.
 - ✅ **Real email delivery (SMTP)** — verification and password reset emails are sent via SMTP when `SMTP_HOST` is configured; otherwise they fall back to console logging for demo mode.
 - ✅ **Email verification on registration** — new accounts are inactive until email verification; demo mode returns a `verify_token` for immediate verification.
 - ✅ **Real auto-apply** — headless Playwright worker queues applications against external listings with retry, screenshots, and concurrency control.
 - ✅ **Persisted external-job aggregation** — deduplicated Adzuna / JSearch listings are stored in the database with DB-as-cache, rate limiting, and stale-fallback serving.
 - ✅ **WebSocket live push** — push the in-app notifications above in real time instead of on page load (FR-32).
-- 🔲 **Interview scheduling** — calendar flow for shortlisted candidates (FR-33).
-- 🔲 **Mobile app** — React Native companion (FR-34).
+- ✅ **Interview scheduling** — calendar flow with Google Calendar, Outlook, and .ics generation for shortlisted candidates (FR-33).
+- ✅ **Mobile app & offline access** — PWA offline service worker and installable manifest (FR-34).
+- ✅ **OAuth Social Login** — Google, LinkedIn, and GitHub authentication via `/api/v1/auth/oauth/login`.
+- ✅ **List pagination & race-condition prevention** — Safe pagination across applications, saved jobs, auto-apply logs, and deduplicated seed runs.
 
 ### 🔐 Security
 

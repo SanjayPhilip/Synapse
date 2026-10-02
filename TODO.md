@@ -2,7 +2,7 @@
 
 > AI-Driven Resume Optimization, Job Matching & Bidirectional Hiring Platform
 > Goal: when every item below is checked, the app is 100% production-complete.
-> Last updated: 2026-08-05
+> Last updated: 2026-10-02
 
 ---
 
@@ -29,6 +29,7 @@
 - Email: `send_*_email` fns in `backend/app/services/email.py`; prints to stdout when `SMTP_HOST` unset (dev fallback). `POST /auth/resend-verification` exists; register emails the link too. Status-change emails fire on auto-screen + manual override.
 - Auto-screen: computed on submit (falls back to on-the-fly `compute_match` if no `MatchScore`). Audit trail: `ApplicationStatusHistory` table (reasons: submitted/auto_screen/manual) + `GET /applications/{id}/history`. New table needs `python -m app.migrate` (Alembic rev `286188382dec`).
 - External jobs (item 5, rev `3e5f1a7c9b2d`): `ExternalJob` table dedups by `(external_source, external_id)`. `app/services/external_jobs.py` fetches Adzuna+JSearch (skipped when API keys unset); DB is the cache — search returns `stale=true` + cached rows when providers fail. Search endpoint commits after serializing (service does NOT commit — rows stay un-expired for `model_validate`). Save/apply materialize into `JobPosting` under a system employer profile `external-jobs@synapse.local` (password_hash `!`), then reuse `SavedJob`/`AutoApplyLog` (apply = pending queue, worker in item 1). Frontend: `searchExternalJobs/saveExternalJob/applyExternalJob` in `src/lib/api.ts`; JobFeedPage replaced the Supabase edge fn.
+- List pagination & concurrency: `make_page` helper in `backend/app/pagination.py` wraps `/applications/job/{job_id}`, `/saved-jobs`, and `/auto-apply` with `page` & `page_size`. `src/lib/api.ts` safely unwraps with `unwrapItems`. `seed.ts` deduplicates concurrent seeding calls via `seedPromise`.
 - `.env` holds real secrets (API keys) — never commit. `README` + API reference still unwritten (Docs section).
 
 ### How to run tomorrow
