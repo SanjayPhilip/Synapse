@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
+import uuid
 from app.database import get_db
 from app.models import Profile, SessionToken
 from app.schemas.auth import (
