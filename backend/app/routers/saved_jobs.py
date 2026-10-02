@@ -1,28 +1,34 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import SavedJob, JobPosting, Profile
 from app.schemas.saved_job import SavedJobCreate, SavedJobResponse
 from app.middleware.auth import get_current_user
+from app.pagination import make_page
 
 router = APIRouter(prefix="/api/v1/saved-jobs", tags=["saved_jobs"])
 
 
-@router.get("", response_model=list[SavedJobResponse])
+@router.get("")
 async def list_saved_jobs(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
+    base = (
         select(SavedJob)
         .options(selectinload(SavedJob.job_posting))
         .where(SavedJob.seeker_id == current_user.id)
         .order_by(SavedJob.created_at.desc())
     )
+    total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
     saved = result.scalars().all()
+    
     out = []
     for s in saved:
         d = SavedJobResponse.model_validate({
@@ -43,7 +49,7 @@ async def list_saved_jobs(
                 "external_url": s.job_posting.external_url,
             }
         out.append(d)
-    return out
+    return make_page(out, total, page, page_size)
 
 
 @router.post("")

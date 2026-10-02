@@ -116,9 +116,11 @@ async def list_my_applications(
     return make_page([_to_response(a) for a in apps], total, page, page_size)
 
 
-@router.get("/job/{job_id}", response_model=list[ApplicationResponse])
+@router.get("/job/{job_id}")
 async def list_applications_for_job(
     job_id: uuid.UUID,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=500),
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -127,13 +129,16 @@ async def list_applications_for_job(
     if not job or job.employer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    result = await db.execute(
+    base = (
         select(Application)
         .options(selectinload(Application.job_posting))
         .where(Application.job_posting_id == job_id)
         .order_by(Application.created_at.desc())
     )
-    return [_to_response(a) for a in result.scalars().all()]
+    total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
+    apps = result.scalars().all()
+    return make_page([_to_response(a) for a in apps], total, page, page_size)
 
 
 @router.post("", response_model=ApplicationResponse)

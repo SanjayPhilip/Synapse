@@ -125,8 +125,9 @@ export async function getApplicationsPage(_seekerId: string, page = 1, pageSize 
   return api.get<Paginated<Application>>(`/api/v1/applications?page=${page}&page_size=${pageSize}`);
 }
 
-export async function getApplicationsForJob(jobPostingId: string): Promise<Application[]> {
-  return api.get<Application[]>(`/api/v1/applications/job/${jobPostingId}`);
+export async function getApplicationsForJob(jobPostingId: string, page = 1, pageSize = 500): Promise<Application[]> {
+  const res = await api.get<Paginated<Application> | Application[]>(`/api/v1/applications/job/${jobPostingId}?page=${page}&page_size=${pageSize}`);
+  return unwrapItems(res);
 }
 
 export async function createApplication(app: Omit<Application, 'id' | 'created_at' | 'updated_at'>): Promise<Application> {
@@ -167,8 +168,9 @@ export async function getGapExplanation(data: { resume_id?: string; job_posting_
 }
 
 // ============ SAVED JOBS ============
-export async function getSavedJobs(_seekerId: string): Promise<SavedJob[]> {
-  return api.get<SavedJob[]>('/api/v1/saved-jobs');
+export async function getSavedJobs(_seekerId: string, page = 1, pageSize = 500): Promise<SavedJob[]> {
+  const res = await api.get<Paginated<SavedJob> | SavedJob[]>(`/api/v1/saved-jobs?page=${page}&page_size=${pageSize}`);
+  return unwrapItems(res);
 }
 
 export async function saveJob(seekerId: string, jobPostingId: string, matchScore: number | null): Promise<void> {
@@ -231,8 +233,9 @@ export async function updateRewriteSuggestion(id: string, updates: Partial<Rewri
 }
 
 // ============ AUTO-APPLY LOGS ============
-export async function getAutoApplyLogs(_seekerId: string): Promise<AutoApplyLog[]> {
-  return api.get<AutoApplyLog[]>('/api/v1/auto-apply');
+export async function getAutoApplyLogs(_seekerId: string, page = 1, pageSize = 500): Promise<AutoApplyLog[]> {
+  const res = await api.get<Paginated<AutoApplyLog> | AutoApplyLog[]>(`/api/v1/auto-apply?page=${page}&page_size=${pageSize}`);
+  return unwrapItems(res);
 }
 
 export async function createAutoApplyLog(log: Omit<AutoApplyLog, 'id' | 'created_at' | 'updated_at'>): Promise<AutoApplyLog> {

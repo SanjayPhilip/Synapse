@@ -42,18 +42,24 @@ def _to_response(log: AutoApplyLog) -> AutoApplyLogResponse:
     return AutoApplyLogResponse.model_validate(data)
 
 
-@router.get("", response_model=list[AutoApplyLogResponse])
+@router.get("")
 async def list_auto_apply_logs(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
+    base = (
         select(AutoApplyLog)
         .options(selectinload(AutoApplyLog.job_posting))
         .where(AutoApplyLog.seeker_id == current_user.id)
         .order_by(AutoApplyLog.created_at.desc())
     )
-    return [_to_response(log) for log in result.scalars().all()]
+    total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    result = await db.execute(base.offset((page - 1) * page_size).limit(page_size))
+    logs = result.scalars().all()
+    from app.pagination import make_page
+    return make_page([_to_response(log) for log in logs], total, page, page_size)
 
 
 @router.get("/{seeker_id}/{job_id}", response_model=AutoApplyLogResponse | None)

@@ -39,7 +39,7 @@ export function ApplicantsPage() {
   useEffect(() => {
     if (!profile) return;
     (async () => {
-      const j = await getJobPostings({ employerId: profile.id, status: 'active' });
+      const j = await getJobPostings({ employerId: profile.id, status: 'active', limit: 100 });
       setJobs(j); if (j.length > 0) setSelectedJobId(j[0].id); setLoading(false);
     })();
   }, [profile]);
@@ -249,35 +249,57 @@ export function ApplicantsPage() {
             );
           })()}
 
-          <GlassmorphicCard className="overflow-hidden">
-            <table className="w-full">
+          <GlassmorphicCard className="overflow-x-auto">
+            <table className="w-full text-left">
               <thead className="border-b border-slate-700/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Candidate</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Match Score</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Applied</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Candidate</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Match Score</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Matched Skills</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Missing Skills</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Status</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Applied</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
                 {filteredApplicants.map((app) => (
                   <tr key={app.id} className="hover:bg-slate-800/30 cursor-pointer transition-colors" onClick={() => setSelectedApplicant(app)}>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="font-medium text-white">{app.profile?.full_name || 'Unknown'}</div>
                       <div className="text-xs text-slate-500">{app.profile?.email}</div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <div className={`text-lg font-bold ${scoreColor(app.score || 0)}`}>{(app.score || 0).toFixed(0)}</div>
-                        <div className="h-2 w-16 rounded-full bg-slate-800">
+                        <div className="hidden sm:block h-2 w-16 rounded-full bg-slate-800">
                           <div className={`h-2 rounded-full ${scoreBar(app.score || 0)}`} style={{ width: `${app.score || 0}%` }} />
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3"><Badge color={statusColors[app.status]}>{app.status}</Badge></td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{new Date(app.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-3"><ChevronRight className="h-4 w-4 text-slate-600" /></td>
+                    <td className="px-4 py-3 min-w-[200px]">
+                      <div className="flex flex-wrap gap-1">
+                        {(app.gapReport?.matched_skills?.slice(0, 4) || []).map((s: string, i: number) => (
+                          <span key={i} className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">{s}</span>
+                        ))}
+                        {(app.gapReport?.matched_skills?.length || 0) > 4 && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 text-[10px]">+{app.gapReport.matched_skills.length - 4} more</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 min-w-[200px]">
+                      <div className="flex flex-wrap gap-1">
+                        {(app.gapReport?.missing_skills?.slice(0, 4) || []).map((s: string, i: number) => (
+                          <span key={i} className="px-1.5 py-0.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20 text-[10px]">{s}</span>
+                        ))}
+                        {(app.gapReport?.missing_skills?.length || 0) > 4 && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 text-[10px]">+{app.gapReport.missing_skills.length - 4} more</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap"><Badge color={statusColors[app.status]}>{app.status}</Badge></td>
+                    <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">{new Date(app.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 whitespace-nowrap"><ChevronRight className="h-4 w-4 text-slate-600" /></td>
                   </tr>
                 ))}
               </tbody>
