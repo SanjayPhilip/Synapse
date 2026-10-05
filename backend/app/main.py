@@ -73,16 +73,15 @@ app = FastAPI(
 
 app.state.celery = celery_app
 
+app.add_middleware(RequestContextMiddleware)
+app.add_middleware(RateLimitMiddleware, max_requests=300, window_seconds=60)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Last added = outermost: rate limit + request context wrap everything.
-app.add_middleware(RateLimitMiddleware, max_requests=300, window_seconds=60)
-app.add_middleware(RequestContextMiddleware)
 
 register_error_handlers(app)
 
