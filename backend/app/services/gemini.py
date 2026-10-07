@@ -59,7 +59,11 @@ async def parse_resume_with_ai(raw_text: str) -> dict:
         "education (array of {institution, degree, field, start_date, end_date}), certifications (array of strings)."
     )
     try:
-        result = await _gemini_generate(f"Parse this resume:\n\n{raw_text[:8000]}", system)
+        import asyncio
+        result = await asyncio.wait_for(
+            _gemini_generate(f"Parse this resume:\n\n{raw_text[:8000]}", system),
+            timeout=5.0
+        )
         import json
         clean = result.strip().removeprefix("```json").removesuffix("```").strip()
         return json.loads(clean)

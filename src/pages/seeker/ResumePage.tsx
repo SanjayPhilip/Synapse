@@ -42,17 +42,28 @@ export function ResumePage() {
     const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
     if (!allowedTypes.includes(ext)) { showToast('Invalid file type. Upload PDF, DOCX, or TXT.', 'error'); return; }
     setUploading(true);
-    setUploadProgress(0);
+    setUploadProgress(10);
     const progressInterval = setInterval(() => {
-      setUploadProgress(prev => Math.min(prev + 10, 90));
-    }, 100);
+      setUploadProgress(prev => (prev < 90 ? prev + 10 : 90));
+    }, 150);
     try {
       const newResume = await uploadResume(file);
       clearInterval(progressInterval);
       setUploadProgress(100);
       setResume(newResume); setParsedData(newResume.parsed_data); setRawText(newResume.raw_text);
-      showToast('Resume uploaded and parsed.');
-    } catch (err) { console.error(err); clearInterval(progressInterval); setUploadProgress(0); showToast('Failed to parse resume.', 'error'); } finally { setTimeout(() => { setUploading(false); setUploadProgress(0); }, 500); }
+      showToast('Resume uploaded and parsed successfully.');
+    } catch (err) {
+      console.error(err);
+      clearInterval(progressInterval);
+      setUploadProgress(0);
+      showToast('Failed to parse resume.', 'error');
+    } finally {
+      clearInterval(progressInterval);
+      setTimeout(() => {
+        setUploading(false);
+        setUploadProgress(0);
+      }, 400);
+    }
   }
 
   async function handleFileUpload(e: ChangeEvent<HTMLInputElement>) {
