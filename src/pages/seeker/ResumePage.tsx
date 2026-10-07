@@ -360,25 +360,47 @@ export function ResumePage() {
                   {(parsedData.experience || []).map((exp, i) => (
                     <div key={i} className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
                       <div className="grid gap-3 sm:grid-cols-2">
-                        <input className={inputClass} placeholder="Title" value={exp.title || ''} onChange={(e) => { const next = [...(parsedData.experience || [])]; next[i] = { ...exp, title: e.target.value }; setParsedData(prev => ({ ...prev, experience: next })); }} />
+                        <input className={inputClass} placeholder="Job Title" value={exp.title || ''} onChange={(e) => { const next = [...(parsedData.experience || [])]; next[i] = { ...exp, title: e.target.value }; setParsedData(prev => ({ ...prev, experience: next })); }} />
                         <input className={inputClass} placeholder="Company" value={exp.company || ''} onChange={(e) => { const next = [...(parsedData.experience || [])]; next[i] = { ...exp, company: e.target.value }; setParsedData(prev => ({ ...prev, experience: next })); }} />
                       </div>
-                      <textarea className={`${inputClass} mt-3`} placeholder="Description" value={exp.description || ''} onChange={(e) => { const next = [...(parsedData.experience || [])]; next[i] = { ...exp, description: e.target.value }; setParsedData(prev => ({ ...prev, experience: next })); }} />
+                      <div className="grid gap-3 sm:grid-cols-2 mt-3">
+                        <input className={inputClass} placeholder="Start Date (e.g. Jan 2020)" value={exp.start_date || ''} onChange={(e) => { const next = [...(parsedData.experience || [])]; next[i] = { ...exp, start_date: e.target.value }; setParsedData(prev => ({ ...prev, experience: next })); }} />
+                        <input className={inputClass} placeholder="End Date (or 'Present')" value={exp.end_date || ''} onChange={(e) => { const next = [...(parsedData.experience || [])]; next[i] = { ...exp, end_date: e.target.value }; setParsedData(prev => ({ ...prev, experience: next })); }} />
+                      </div>
+                      <textarea className={`${inputClass} mt-3 h-20 resize-none`} placeholder="Description / Key achievements" value={exp.description || ''} onChange={(e) => { const next = [...(parsedData.experience || [])]; next[i] = { ...exp, description: e.target.value }; setParsedData(prev => ({ ...prev, experience: next })); }} />
+                      <button type="button" onClick={() => setParsedData(prev => ({ ...prev, experience: (prev.experience || []).filter((_, j) => j !== i) }))} className="mt-2 text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                        <Trash2 className="h-3 w-3" /> Remove
+                      </button>
                     </div>
                   ))}
                 </div>
+                <button type="button" onClick={() => setParsedData(prev => ({ ...prev, experience: [...(prev.experience || []), { title: '', company: '', start_date: '', end_date: '', description: '' }] }))} className="mt-3 text-sm text-cyan-400 hover:text-cyan-300">
+                  + Add work experience
+                </button>
               </section>
 
               <section>
                 <h4 className="text-sm font-semibold text-slate-300 mb-3">Education</h4>
                 <div className="space-y-3">
                   {(parsedData.education || []).map((edu, i) => (
-                    <div key={i} className="grid gap-3 rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 sm:grid-cols-2">
-                      <input className={inputClass} placeholder="Institution" value={edu.institution || ''} onChange={(e) => { const next = [...(parsedData.education || [])]; next[i] = { ...edu, institution: e.target.value }; setParsedData(prev => ({ ...prev, education: next })); }} />
-                      <input className={inputClass} placeholder="Degree" value={edu.degree || ''} onChange={(e) => { const next = [...(parsedData.education || [])]; next[i] = { ...edu, degree: e.target.value }; setParsedData(prev => ({ ...prev, education: next })); }} />
+                    <div key={i} className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <input className={inputClass} placeholder="Institution" value={edu.institution || ''} onChange={(e) => { const next = [...(parsedData.education || [])]; next[i] = { ...edu, institution: e.target.value }; setParsedData(prev => ({ ...prev, education: next })); }} />
+                        <input className={inputClass} placeholder="Degree (e.g. B.S. Computer Science)" value={edu.degree || ''} onChange={(e) => { const next = [...(parsedData.education || [])]; next[i] = { ...edu, degree: e.target.value }; setParsedData(prev => ({ ...prev, education: next })); }} />
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2 mt-3">
+                        <input className={inputClass} placeholder="Field of Study" value={edu.field || ''} onChange={(e) => { const next = [...(parsedData.education || [])]; next[i] = { ...edu, field: e.target.value }; setParsedData(prev => ({ ...prev, education: next })); }} />
+                        <input className={inputClass} placeholder="Graduation Year (e.g. 2022)" value={edu.end_date || ''} onChange={(e) => { const next = [...(parsedData.education || [])]; next[i] = { ...edu, end_date: e.target.value }; setParsedData(prev => ({ ...prev, education: next })); }} />
+                      </div>
+                      <button type="button" onClick={() => setParsedData(prev => ({ ...prev, education: (prev.education || []).filter((_, j) => j !== i) }))} className="mt-2 text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                        <Trash2 className="h-3 w-3" /> Remove
+                      </button>
                     </div>
                   ))}
                 </div>
+                <button type="button" onClick={() => setParsedData(prev => ({ ...prev, education: [...(prev.education || []), { institution: '', degree: '', field: '', start_date: '', end_date: '' }] }))} className="mt-3 text-sm text-cyan-400 hover:text-cyan-300">
+                  + Add education
+                </button>
               </section>
 
               <section>
@@ -386,7 +408,7 @@ export function ResumePage() {
                 <div className="space-y-2">
                   {(parsedData.certifications || []).map((cert, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <input className={inputClass + " flex-1"} placeholder="Certification name" value={cert} onChange={(e) => { const next = [...(parsedData.certifications || [])]; next[i] = e.target.value; setParsedData(prev => ({ ...prev, certifications: next })); }} />
+                      <input className={inputClass + " flex-1"} placeholder="Certification name (e.g. AWS Certified Developer)" value={cert} onChange={(e) => { const next = [...(parsedData.certifications || [])]; next[i] = e.target.value; setParsedData(prev => ({ ...prev, certifications: next })); }} />
                       <button type="button" onClick={() => { const next = (parsedData.certifications || []).filter((_, j) => j !== i); setParsedData(prev => ({ ...prev, certifications: next })); }} className="text-slate-500 hover:text-red-400"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   ))}

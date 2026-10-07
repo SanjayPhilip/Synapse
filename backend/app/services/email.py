@@ -9,18 +9,29 @@ def _send_email(to: str, subject: str, html: str, text: str | str = ""):
         print(f"[email] {subject} -> {to}\n{text}")
         return
 
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = settings.SMTP_FROM
-    msg["To"] = to
-    msg.set_content(text)
-    msg.add_alternative(html, subtype="html")
+    def _do_send():
+        try:
+            msg = EmailMessage()
+            msg["Subject"] = subject
+            msg["From"] = settings.SMTP_FROM
+            msg["To"] = to
+            msg.set_content(text)
+            msg.add_alternative(html, subtype="html")
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-        if settings.SMTP_USER and settings.SMTP_PASS:
-            server.starttls()
-            server.login(settings.SMTP_USER, settings.SMTP_PASS)
-        server.send_message(msg)
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=5) as server:
+                if settings.SMTP_USER and settings.SMTP_PASS:
+                    server.starttls()
+                    server.login(settings.SMTP_USER, settings.SMTP_PASS)
+                server.send_message(msg)
+        except Exception as e:
+            print(f"[email error] Failed to send email to {to}: {e}")
+
+    import asyncio
+    try:
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, _do_send)
+    except RuntimeError:
+        _do_send()
 
 
 send_raw_email = _send_email
