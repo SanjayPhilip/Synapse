@@ -75,9 +75,20 @@ app.state.celery = celery_app
 
 app.add_middleware(RequestContextMiddleware)
 app.add_middleware(RateLimitMiddleware, max_requests=300, window_seconds=60)
+cors_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+if hasattr(settings, "CORS_ORIGINS") and settings.CORS_ORIGINS:
+    cors_origins = list(set(cors_origins + list(settings.CORS_ORIGINS)))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
