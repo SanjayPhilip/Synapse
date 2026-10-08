@@ -178,7 +178,7 @@ python -m app.seed
 npm run setup:db
 
 # Run FastAPI Development Server
-python -m uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 - **API Docs (Swagger UI)**: `http://localhost:8000/docs`
 
@@ -221,7 +221,7 @@ docker compose down
 docker compose down -v
 ```
 
-### 4. Database Migrations (Alembic)
+### 5. Database Migrations (Alembic)
 
 For local development, `python -m app.init_db` creates tables directly. For production and version-controlled schema changes, use Alembic migrations:
 
@@ -242,7 +242,7 @@ alembic revision --autogenerate -m "description"
 python -m app.migrate
 ```
 
-### 5. Testing
+### 6. Testing
 
 ```bash
 # From project root — run frontend lint + typecheck
@@ -324,7 +324,7 @@ Current status of all outstanding work, tracked here until done. Legend: `🔲` 
 
 - ✅ **Test / deploy instructions** — added `Testing` and `Deployment` sections to README.
 - ✅ **API reference** — FastAPI auto-generated OpenAPI docs available at `/docs` when running the backend.
-- ✅ **Deploy runbook** — step-by-step production deployment guide ([DEPLOY_RUNBOOK.md](file:///C:/Personal/Synapse/DEPLOY_RUNBOOK.md)).
+- ✅ **Deploy runbook** — step-by-step production deployment guide ([DEPLOY_RUNBOOK.md](./DEPLOY_RUNBOOK.md)).
 
 
 ---
