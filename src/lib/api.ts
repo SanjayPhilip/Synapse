@@ -26,8 +26,9 @@ export async function deleteResume(id: string): Promise<void> {
   return api.delete(`/api/v1/resumes/${id}`);
 }
 
-export async function uploadResume(file: File): Promise<Resume> {
-  return api.upload<Resume>('/api/v1/resumes/upload', file);
+export async function uploadResume(file: File | Blob, filename?: string): Promise<Resume> {
+  const f = file instanceof File ? file : new File([file], filename || 'resume.txt', { type: file.type || 'text/plain' });
+  return api.upload<Resume>('/api/v1/resumes/upload', f);
 }
 
 export async function parseResumeText(rawText: string): Promise<{ parsed_data: ResumeData; skills: string[] }> {
@@ -133,8 +134,8 @@ export async function getApplicationsForJob(jobPostingId: string, page = 1, page
 export async function createApplication(app: Omit<Application, 'id' | 'created_at' | 'updated_at'>): Promise<Application> {
   return api.post<Application>('/api/v1/applications', {
     job_posting_id: app.job_posting_id,
-    resume_id: app.resume_id,
-    applied_via: app.applied_via,
+    resume_id: app.resume_id || null,
+    applied_via: app.applied_via || 'platform',
   });
 }
 

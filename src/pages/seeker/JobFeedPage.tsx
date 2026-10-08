@@ -96,8 +96,9 @@ export function JobFeedPage() {
     'Marketing & Sales',
   ];
 
-  async function loadJobsPage(pageNum: number, append: boolean, searchQuery: string = search) {
+  async function loadJobsPage(pageNum: number, append: boolean, searchQuery: string = search, currentResume?: Resume | null) {
     if (!profile) return;
+    const resumeToUse = currentResume !== undefined ? currentResume : resume;
     try {
       if (append) setLoadingMore(true);
       const res = await getJobPostingsPage({
@@ -114,10 +115,10 @@ export function JobFeedPage() {
         experienceLevel: experienceLevel !== 'all' ? experienceLevel : undefined,
         skill: selectedSkills.length > 0 ? selectedSkills[0] : undefined,
       });
-      const items = res.items.filter((job) => job.employer_id !== profile.id);
+      const items = res.items;
       setJobs((prev) => (append ? [...prev, ...items] : items));
       setHasMore(pageNum < res.total_pages);
-      if (resume) recalculateScores(resume, items);
+      if (resumeToUse) recalculateScores(resumeToUse, items);
     } catch (e) {
       console.error(e);
     } finally {
@@ -131,18 +132,28 @@ export function JobFeedPage() {
     (async () => {
       try {
         const [r, all, s, f] = await Promise.all([
-          getCurrentResume(profile.id),
-          getResumes(profile.id),
-          getSavedJobs(profile.id),
+          getCurrentResume(profile.id).catch((err) => {
+            console.error('Failed to get current resume:', err);
+            return null;
+          }),
+          getResumes(profile.id).catch((err) => {
+            console.error('Failed to get all resumes:', err);
+            return [];
+          }),
+          getSavedJobs(profile.id).catch(() => []),
           getJobFacets().catch(() => null),
         ]);
-        setResume(r);
+        
+        // If current resume is null but we have resumes in list, fallback to the first current or newest resume
+        const activeResume = r || all.find((item) => item.is_current) || all[0] || null;
+        setResume(activeResume);
         setAllResumes(all);
         setSavedJobs(s);
         if (f) setFacets(f);
-        await loadJobsPage(1, false);
+
+        await loadJobsPage(1, false, search, activeResume);
       } catch (e) {
-        console.error(e);
+        console.error('Error during initial JobFeedPage load:', e);
       } finally {
         setLoading(false);
         isInitialMount.current = false;
@@ -252,25 +263,57 @@ export function JobFeedPage() {
     }
   }
 
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+
   async function handleApply(job: JobPosting, via: 'platform' | 'manual_redirect') {
     if (!profile) return;
-    if (!resume) {
-      showToast('Upload a resume first.', 'error');
+    
+    // Fallback to active resume or fetch if somehow state was empty
+    let currentResume = resume;
+    if (!currentResume) {
+      try {
+        const fetched = await getCurrentResume(profile.id);
+        if (fetched) {
+          currentResume = fetched;
+          setResume(fetched);
+        } else if (allResumes.length > 0) {
+          currentResume = allResumes[0];
+          setResume(allResumes[0]);
+        }
+      } catch (err) {
+        console.error('Failed to resolve resume on apply:', err);
+      }
+    }
+
+    if (!currentResume) {
+      showToast('Please upload a resume first on the Resume page.', 'error');
       return;
     }
+
+    setApplyingJobId(job.id);
     try {
       await createApplication({
         seeker_id: profile.id,
         job_posting_id: job.id,
-        resume_id: resume.id,
+        resume_id: currentResume.id,
         status: 'applied',
         match_score: scores[job.id] ?? null,
         applied_via: via,
       });
+      setAppliedJobIds((prev) => new Set(prev).add(job.id));
       if (via === 'manual_redirect' && job.external_url) window.open(job.external_url, '_blank');
-      showToast('Application submitted!');
+      showToast('Application submitted successfully!');
     } catch (e: any) {
-      showToast(e.code === '23505' ? 'Already applied.' : 'Failed to submit.', 'error');
+      const msg = e?.message || '';
+      if (msg.toLowerCase().includes('already applied')) {
+        setAppliedJobIds((prev) => new Set(prev).add(job.id));
+        showToast('You have already applied to this job.', 'error');
+      } else {
+        showToast(msg || 'Failed to submit application.', 'error');
+      }
+    } finally {
+      setApplyingJobId(null);
     }
   }
 
@@ -358,8 +401,9 @@ export function JobFeedPage() {
         if (workMode === 'on_site' && job.is_remote) return false;
 
         if (jobType !== 'all') {
-          const jt = (job.job_type || '').toLowerCase();
-          if (!jt.includes(jobType.replace('_', ''))) return false;
+          const jt = (job.job_type || '').toLowerCase().replace(/[\s_-]/g, '');
+          const target = jobType.toLowerCase().replace(/[\s_-]/g, '');
+          if (!jt.includes(target)) return false;
         }
 
         if (selectedCategory !== 'All' && job.category !== selectedCategory) return false;
@@ -941,10 +985,10 @@ export function JobFeedPage() {
         </div>
       )}
 
-      {!resume && (
+      {!loading && !resume && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
           <p className="text-sm text-amber-400">
-            Upload a resume to see personalized match scores.
+            <a href="/app/resume" className="underline font-semibold hover:text-amber-300">Upload a resume</a> to unlock personalized match scores and apply to jobs.
           </p>
         </div>
       )}
@@ -1127,10 +1171,22 @@ export function JobFeedPage() {
                     </button>
                     <button
                       onClick={() => handleApply(job, 'platform')}
-                      disabled={!resume}
-                      className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!resume || applyingJobId === job.id || appliedJobIds.has(job.id)}
+                      className={`btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50 ${appliedJobIds.has(job.id) ? '!bg-emerald-600/30 !text-emerald-300 border border-emerald-500/30' : ''}`}
                     >
-                      <Zap className="h-3.5 w-3.5" /> Apply
+                      {applyingJobId === job.id ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Submitting...
+                        </>
+                      ) : appliedJobIds.has(job.id) ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-400" /> Applied
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-3.5 w-3.5" /> Apply
+                        </>
+                      )}
                     </button>
                     {resume && job.external_url && (
                       <AutoApplyButton
@@ -1238,16 +1294,43 @@ export function JobFeedPage() {
                 </div>
               </div>
             )}
-            {'external_url' in selectedJob && selectedJob.external_url && (
-              <a
-                href={selectedJob.external_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary inline-flex items-center gap-2"
-              >
-                <ExternalLink className="h-4 w-4" /> Go to original posting
-              </a>
-            )}
+            <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-700/50">
+              {'id' in selectedJob && !('external_source' in selectedJob && selectedJob.external_source) && (
+                <>
+                  <button
+                    onClick={() => {
+                      handleApply(selectedJob as JobPosting, 'platform');
+                      setSelectedJob(null);
+                    }}
+                    disabled={!resume}
+                    className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Zap className="h-3.5 w-3.5 mr-1.5" /> Apply
+                  </button>
+                  <button
+                    onClick={() => handleSave(selectedJob as JobPosting)}
+                    className={`btn ${
+                      isSaved(selectedJob.id)
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'btn-secondary'
+                    }`}
+                  >
+                    <Bookmark className="h-3.5 w-3.5 mr-1.5" />
+                    {isSaved(selectedJob.id) ? 'Saved' : 'Save'}
+                  </button>
+                </>
+              )}
+              {'external_url' in selectedJob && selectedJob.external_url && (
+                <a
+                  href={selectedJob.external_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" /> Go to original posting
+                </a>
+              )}
+            </div>
           </div>
         </Modal>
       )}

@@ -127,6 +127,14 @@ export function LoginPage() {
     } else {
       if (rememberMe) localStorage.setItem('synapse_remember_email', email);
       else localStorage.removeItem('synapse_remember_email');
+      // Persist the selected role so the dashboard shows the right view
+      const storedUser = localStorage.getItem('synapse_user');
+      if (storedUser) {
+        try {
+          const u = JSON.parse(storedUser);
+          if (u.role) localStorage.setItem('synapse_active_role', u.role);
+        } catch { /* ignore */ }
+      }
       await handleLoginSuccess();
     }
   }
@@ -321,7 +329,16 @@ export function LoginPage() {
                     const { error } = await signIn(demo.email, 'Demo1234!');
                     setLoading(false);
                     if (error) setError(error);
-                    else await handleLoginSuccess();
+                    else {
+                      const storedUser = localStorage.getItem('synapse_user');
+                      if (storedUser) {
+                        try {
+                          const u = JSON.parse(storedUser);
+                          if (u.role) localStorage.setItem('synapse_active_role', u.role);
+                        } catch { /* ignore */ }
+                      }
+                      await handleLoginSuccess();
+                    }
                   }}
                   className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
                     demo.color === 'cyan'

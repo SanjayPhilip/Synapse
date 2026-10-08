@@ -109,32 +109,87 @@ export function parseResumeText(rawText: string): ResumeData {
   }
 
   // Experience section
-  const expIdx = lines.findIndex((l) => /^(work\s+)?experience\b/i.test(l));
+  const expIdx = lines.findIndex((l) =>
+    /^(?:(?:work|professional|employment|internship|internships|relevant)\s+)?(?:experience|history|employment)\b|^(?:internships?|work\s+history)\b/i.test(l)
+  );
   if (expIdx >= 0) {
     let i = expIdx + 1;
-    while (i < lines.length && !/^(education|certifications?|projects?|skills?)\b/i.test(lines[i])) {
+    while (i < lines.length && !/^(education|certifications?|projects?|skills?|publications?|awards?)\b/i.test(lines[i])) {
       const line = lines[i];
       if (line.length > 3) {
-        const dateMatch = line.match(/(\d{4})\s*[-–]\s*(\d{4}|present|current)/i);
-        if (dateMatch) {
+        if (line.includes('|') || line.includes('–') || /(?:intern|engineer|developer|analyst|manager|lead|consultant)/i.test(line)) {
+          const parts = line.split(/\s*\|\s*/).map((p) => p.trim()).filter(Boolean);
+          let title = parts[0] || line;
+          let company = parts[1] || '';
+          let startDate = '';
+          let endDate = '';
+
+          // Check if line contains inline date like (2020-2023) or 2020 - 2023
+          const inlineDate = line.match(/\(?(\d{4})\s*[\-–—to\s]+\s*(\d{4}|present|current)\)?/i);
+          if (inlineDate) {
+            startDate = inlineDate[1];
+            endDate = inlineDate[2];
+            title = title.replace(/\(?\d{4}\s*[\-–—to\s]+\s*(?:\d{4}|present|current)\)?/i, '').trim();
+          }
+
+          // Check if format is 'Title at Company'
+          if (!company && /\bat\b/i.test(title)) {
+            const atParts = title.split(/\s+\bat\b\s+/i);
+            title = atParts[0].trim();
+            company = atParts[1]?.trim() || '';
+          }
+
           const descLines: string[] = [];
-          for (const dl of lines.slice(i + 1, i + 4)) {
-            if (/^(education|certifications?|projects?|skills?)\b/i.test(dl)) break;
-            descLines.push(dl);
+          let j = i + 1;
+          while (j < lines.length && !/^(education|certifications?|projects?|skills?|publications?|awards?)\b/i.test(lines[j])) {
+            const nxt = lines[j];
+            if (nxt.startsWith('(cid:') || nxt.startsWith('•') || nxt.startsWith('- ') || nxt.startsWith('* ')) {
+              descLines.push(nxt.replace(/^\(?cid:\d+\)?\s*|[•\-*]\s*/g, ''));
+            } else {
+              const dm = nxt.match(/(?:[a-z]{3}\.?\s*)?(\d{4})\s*[\-–—to\s]+\s*(?:[a-z]{3}\.?\s*)?(\d{4}|present|current)/i);
+              if (dm && !startDate) {
+                startDate = dm[1];
+                endDate = dm[2];
+              } else if (/(?:intern|engineer|developer|analyst|manager|lead|consultant)/i.test(nxt) || nxt.includes('|')) {
+                break;
+              } else {
+                descLines.push(nxt);
+              }
+            }
+            j++;
           }
           data.experience!.push({
-            title: line.replace(/\d{4}.*$/, '').trim() || 'Position',
-            start_date: dateMatch[1],
-            end_date: dateMatch[2] || '',
+            company,
+            title,
+            start_date: startDate,
+            end_date: endDate,
             description: descLines.join(' ').slice(0, 300),
           });
-          i += 4;
+          i = j;
           continue;
-        }
-        if (!data.experience!.length || data.experience![data.experience!.length - 1].company) {
-          data.experience!.push({ company: line, title: '', description: '' });
         } else {
-          data.experience![data.experience!.length - 1].company = line;
+          const dateMatch = line.match(/(\d{4})\s*[-–]\s*(\d{4}|present|current)/i);
+          if (dateMatch) {
+            const descLines: string[] = [];
+            for (const dl of lines.slice(i + 1, i + 4)) {
+              if (/^(education|certifications?|projects?|skills?)\b/i.test(dl)) break;
+              descLines.push(dl);
+            }
+            data.experience!.push({
+              company: '',
+              title: line.replace(/\d{4}.*$/, '').trim() || 'Position',
+              start_date: dateMatch[1],
+              end_date: dateMatch[2] || '',
+              description: descLines.join(' ').slice(0, 300),
+            });
+            i += 4;
+            continue;
+          }
+          if (!data.experience!.length || data.experience![data.experience!.length - 1].company) {
+            data.experience!.push({ company: line, title: '', description: '', start_date: '', end_date: '' });
+          } else {
+            data.experience![data.experience!.length - 1].company = line;
+          }
         }
       }
       i++;

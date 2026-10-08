@@ -54,19 +54,28 @@ async def _gemini_generate(prompt: str, system_instruction: str = "") -> str:
 async def parse_resume_with_ai(raw_text: str) -> dict:
     system = (
         "You are a resume parsing assistant. Extract structured data from resumes. "
-        "Return ONLY valid JSON with no markdown. Keys: contact (name, email, phone, location, linkedin, website), "
-        "summary, skills (array of strings), experience (array of {company, title, start_date, end_date, description}), "
-        "education (array of {institution, degree, field, start_date, end_date}), certifications (array of strings)."
+        "Return ONLY valid JSON with no markdown, no code fences. "
+        "Keys: contact (name, email, phone, location, linkedin, website), "
+        "summary (string), skills (array of strings), "
+        "experience (array of {company, title, start_date, end_date, description}), "
+        "education (array of {institution, degree, field, start_date, end_date}), "
+        "certifications (array of strings). "
+        "Always return all keys, even if empty. Never wrap in markdown."
     )
     try:
-        import asyncio
+        import asyncio, json, re
         result = await asyncio.wait_for(
             _gemini_generate(f"Parse this resume:\n\n{raw_text[:8000]}", system),
-            timeout=5.0
+            timeout=30.0
         )
-        import json
-        clean = result.strip().removeprefix("```json").removesuffix("```").strip()
-        return json.loads(clean)
+        # Strip markdown fences robustly
+        clean = re.sub(r"^```(?:json)?\s*", "", result.strip(), flags=re.IGNORECASE)
+        clean = re.sub(r"\s*```$", "", clean.strip())
+        parsed = json.loads(clean.strip())
+        # Accept result if it has any useful data (skills, experience, or contact)
+        if parsed.get("skills") or parsed.get("experience") or parsed.get("contact"):
+            return parsed
+        return {}
     except Exception as e:
         logger.warning(f"AI parse fallback triggered: {e}")
         return {}

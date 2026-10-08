@@ -68,35 +68,87 @@ def parse_resume_text(raw_text: str) -> dict:
             if re.search(rf'\b{re.escape(kw)}\b', raw_text, re.I)
         ]
 
+    exp_header_re = re.compile(
+        r'^(?:(?:work|professional|employment|internship|internships|relevant)\s+)?(?:experience|history|employment)\b|'
+        r'^(?:internships?|work\s+history)\b',
+        re.I
+    )
+    sec_stop_re = re.compile(r'^(education|certifications?|projects?|skills?|publications?|awards?)\b', re.I)
+    date_range_re = re.compile(
+        r'(?:(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*)?(\d{4})\s*[\-–—to\s]+\s*(?:(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*)?(\d{4}|present|current)',
+        re.I
+    )
+    single_date_re = re.compile(r'\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*(\d{4})\b|\b(20\d\d|19\d\d)\b', re.I)
+
     exp_idx = next(
-        (i for i, l in enumerate(lines) if re.match(r'^(work\s+)?experience\b', l, re.I)),
+        (i for i, l in enumerate(lines) if exp_header_re.match(l)),
         -1,
     )
     if exp_idx >= 0:
         i = exp_idx + 1
-        while i < len(lines) and not re.match(r'^(education|certifications?|projects?|skills?)\b', lines[i], re.I):
+        while i < len(lines) and not sec_stop_re.match(lines[i]):
             line = lines[i]
             if len(line) > 3:
-                date_match = re.search(r'(\d{4})\s*[-–]\s*(\d{4}|present|current)', line, re.I)
-                if date_match:
+                # Check for pipe or dash or job keywords
+                if '|' in line or '–' in line or any(k in line.lower() for k in ['intern', 'engineer', 'developer', 'analyst', 'manager', 'lead', 'consultant', 'assistant', 'specialist']):
+                    parts = [p.strip() for p in re.split(r'\s*\|\s*', line) if p.strip()]
+                    title = parts[0] if parts else line
+                    company = parts[1] if len(parts) > 1 else ''
+
+                    start_date, end_date = '', ''
                     desc_lines = []
-                    for dl in lines[i + 1: i + 4]:
-                        if re.match(r'^(education|certifications?|projects?|skills?)\b', dl, re.I):
-                            break
-                        desc_lines.append(dl)
+                    j = i + 1
+                    while j < len(lines) and not sec_stop_re.match(lines[j]):
+                        nxt = lines[j]
+                        if nxt.startswith('(cid:') or nxt.startswith('•') or nxt.startswith('- ') or nxt.startswith('* '):
+                            desc_lines.append(re.sub(r'^\(?cid:\d+\)?\s*|[•\-*]\s*', '', nxt))
+                        else:
+                            dm = date_range_re.search(nxt)
+                            if dm:
+                                start_date = dm.group(2)
+                                end_date = dm.group(4)
+                            else:
+                                sm = single_date_re.search(nxt)
+                                if sm and not start_date:
+                                    start_date = sm.group(1) or sm.group(2)
+                                elif any(k in nxt.lower() for k in ['intern', 'engineer', 'developer', 'analyst', 'manager', 'lead']) or '|' in nxt:
+                                    break
+                                else:
+                                    desc_lines.append(nxt)
+                        j += 1
+
                     data["experience"].append({
-                        "title": re.sub(r'\d{4}.*$', '', line).strip() or "Position",
-                        "start_date": date_match.group(1),
-                        "end_date": date_match.group(2) or "",
+                        "company": company,
+                        "title": title,
+                        "start_date": start_date,
+                        "end_date": end_date,
                         "description": " ".join(desc_lines)[:300],
                     })
-                    i += 4
+                    i = j
                     continue
-                if not data["experience"] or data["experience"][-1].get("company"):
-                    data["experience"].append({"company": line, "title": "", "description": ""})
                 else:
-                    data["experience"][-1]["company"] = line
+                    date_match = re.search(r'(\d{4})\s*[-–]\s*(\d{4}|present|current)', line, re.I)
+                    if date_match:
+                        desc_lines = []
+                        for dl in lines[i + 1: i + 4]:
+                            if sec_stop_re.match(dl):
+                                break
+                            desc_lines.append(dl)
+                        data["experience"].append({
+                            "company": "",
+                            "title": re.sub(r'\d{4}.*$', '', line).strip() or "Position",
+                            "start_date": date_match.group(1),
+                            "end_date": date_match.group(2) or "",
+                            "description": " ".join(desc_lines)[:300],
+                        })
+                        i += 4
+                        continue
+                    if not data["experience"] or data["experience"][-1].get("company"):
+                        data["experience"].append({"company": line, "title": "", "description": "", "start_date": "", "end_date": ""})
+                    else:
+                        data["experience"][-1]["company"] = line
             i += 1
+
 
     edu_idx = next(
         (i for i, l in enumerate(lines) if re.match(r'^education\b', l, re.I)),
@@ -128,7 +180,7 @@ def parse_resume_text(raw_text: str) -> dict:
         i = cert_idx + 1
         while i < len(lines) and not re.match(r'^(education|experience|skills?|projects?)\b', lines[i], re.I) and i < cert_idx + 10:
             if len(lines[i]) > 2:
-                data["certifications"].append({"name": lines[i], "issuer": ""})
+                data["certifications"].append(lines[i])
             i += 1
 
     for line in lines:
@@ -316,7 +368,7 @@ def parse_linkedin_profile_text(raw_text: str) -> dict:
         elif sec_name == "certifications":
             for cl in sec_lines:
                 if len(cl) > 3 and not re.match(r'^(issued|credential)', cl, re.I):
-                    data["certifications"].append({"name": cl, "issuer": ""})
+                    data["certifications"].append(cl)
 
     for line in lines:
         lower = line.lower().strip()

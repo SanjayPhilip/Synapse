@@ -12,7 +12,7 @@ export default defineConfig({
   },
   base: '/',
   build: {
-    outDir: '../backend/static',
+    outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
     rollupOptions: {

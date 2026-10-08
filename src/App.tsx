@@ -48,9 +48,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
-  const { profile } = useAuth();
+  const { profile, activeRole } = useAuth();
   const location = useLocation();
-  const activeRole = profile?.role || 'seeker';
   const isAdmin = profile?.role === 'admin';
   const isEmployer = activeRole === 'employer';
 

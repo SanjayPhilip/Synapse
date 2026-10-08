@@ -229,12 +229,22 @@ async def get_gap_explanation(
 
     if data.resume_id:
         resume_result = await db.execute(
-            select(Resume).where(Resume.id == data.resume_id, Resume.user_id == current_user.id)
+            select(Resume).where(Resume.id == data.resume_id)
         )
         resume = resume_result.scalar_one_or_none()
         if resume:
-            resume_text = resume.raw_text
-            resume_skills = resume.skills or []
+            # Check ownership, admin, or employer of the job
+            can_view = (resume.user_id == current_user.id or current_user.role == "admin")
+            if not can_view and data.job_posting_id:
+                from app.models import JobPosting as JP
+                jp_res = await db.execute(select(JP.employer_id).where(JP.id == data.job_posting_id))
+                employer_id = jp_res.scalar_one_or_none()
+                if employer_id == current_user.id:
+                    can_view = True
+            if can_view:
+                resume_text = resume.raw_text
+                resume_skills = resume.skills or []
+
 
     if data.job_posting_id:
         job_result = await db.execute(select(JobPosting).where(JobPosting.id == data.job_posting_id))

@@ -3,8 +3,8 @@ import { Upload, FileText, Save, Trash2, Download, History, RotateCcw, ChevronDo
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { getCurrentResume, getResumes, createResume, updateResume, deleteResume, uploadResume } from '@/lib/api';
-import { parseResumeText, extractSkillsFromData } from '@/lib/resume-parser';
-import type { ResumeData, Resume } from '@/types';
+import { extractSkillsFromData } from '@/lib/resume-parser';
+import type { Resume, ResumeData } from '@/types';
 import { Spinner, ProgressBar } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
 
@@ -51,6 +51,10 @@ export function ResumePage() {
       clearInterval(progressInterval);
       setUploadProgress(100);
       setResume(newResume); setParsedData(newResume.parsed_data); setRawText(newResume.raw_text);
+      if (profile) {
+        const updatedAll = await getResumes(profile.id).catch(() => [newResume]);
+        setAllResumes(updatedAll);
+      }
       showToast('Resume uploaded and parsed successfully.');
     } catch (err) {
       console.error(err);
@@ -91,23 +95,22 @@ export function ResumePage() {
     if (!profile || !manualText.trim()) return;
     setUploading(true);
     try {
-      let parsed: ResumeData;
-      let skills: string[];
-      try {
-        parsed = await parseResumeText(manualText);
-        skills = (parsed.skills || []) as string[];
-      } catch {
-        parsed = parseResumeText(manualText);
-        skills = extractSkillsFromData(parsed);
+      const newResume = await uploadResume(new Blob([manualText], { type: 'text/plain' }), 'manual_entry.txt');
+      setResume(newResume);
+      setParsedData(newResume.parsed_data);
+      setRawText(newResume.raw_text);
+      setManualText('');
+      if (profile) {
+        const updatedAll = await getResumes(profile.id).catch(() => [newResume]);
+        setAllResumes(updatedAll);
       }
-      setParsedData(parsed); setRawText(manualText);
-      const newResume = await createResume({
-        user_id: profile.id, file_name: 'Manual Entry', file_type: 'manual',
-        parsed_data: parsed, raw_text: manualText, skills,
-        version: (resume?.version || 0) + 1, is_current: true,
-      });
-      setResume(newResume); setManualText('');
-    } catch (err) { console.error(err); } finally { setUploading(false); }
+      showToast('Resume parsed and saved successfully.');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to parse resume text.', 'error');
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handleSave() {

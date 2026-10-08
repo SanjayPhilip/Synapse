@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Target, Briefcase, Bookmark, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getCurrentResume, getJobPostings, getApplications, getSavedJobs, getSeekerAnalytics } from '@/lib/api';
+import { getCurrentResume, getResumes, getJobPostings, getApplications, getSavedJobs, getSeekerAnalytics } from '@/lib/api';
 import type { Resume, JobPosting, Application, SavedJob } from '@/types';
 import { ScoreRing, EmptyState } from '@/components/ui';
 import { GlassmorphicCard } from '@/components/GlassmorphicCard';
@@ -28,13 +28,15 @@ export function SeekerDashboard() {
     if (!profile) return;
     (async () => {
       try {
-        const [r, j, a, s] = await Promise.all([
-          getCurrentResume(profile.id),
-          getJobPostings({ status: 'active', limit: 5 }),
-          getApplications(profile.id),
-          getSavedJobs(profile.id),
+        const [r, all, j, a, s] = await Promise.all([
+          getCurrentResume(profile.id).catch(() => null),
+          getResumes(profile.id).catch(() => []),
+          getJobPostings({ status: 'active', limit: 5 }).catch(() => []),
+          getApplications(profile.id).catch(() => []),
+          getSavedJobs(profile.id).catch(() => []),
         ]);
-        setResume(r);
+        const activeResume = r || all.find((item: Resume) => item.is_current) || all[0] || null;
+        setResume(activeResume);
         setJobs(j);
         setApplications(a);
         setSavedJobs(s);
@@ -120,7 +122,9 @@ export function SeekerDashboard() {
                   </div>
                   <div>
                     <div className="text-sm font-medium text-white">{resume.file_name}</div>
-                    <div className="text-xs text-slate-500">{resume.skills.length} skills extracted</div>
+                    <div className="text-xs text-slate-500">
+                      {Array.isArray(resume.skills) ? resume.skills.length : (resume.skills ? 1 : 0)} skills extracted
+                    </div>
                   </div>
                 </div>
                 <Link to="/app/resume" className="btn-primary mt-4 w-full">View Resume</Link>

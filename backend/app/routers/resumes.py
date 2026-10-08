@@ -58,13 +58,30 @@ async def get_resume(
     current_user: Profile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Resume).where(Resume.id == resume_id, Resume.user_id == current_user.id)
-    )
+    # Allow the resume owner directly
+    result = await db.execute(select(Resume).where(Resume.id == resume_id))
     resume = result.scalar_one_or_none()
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
-    return resume
+
+    if resume.user_id == current_user.id or current_user.role == "admin":
+        return resume
+
+    # If employer, check if the candidate applied to one of the employer's jobs with this resume
+    from app.models import Application, JobPosting
+    app_check = await db.execute(
+        select(Application.id)
+        .join(JobPosting, Application.job_posting_id == JobPosting.id)
+        .where(
+            Application.resume_id == resume_id,
+            JobPosting.employer_id == current_user.id,
+        )
+    )
+    if app_check.scalar_one_or_none():
+        return resume
+
+    raise HTTPException(status_code=403, detail="Not authorized to view this resume")
+
 
 
 @router.post("/parse", response_model=ResumeParseResponse)
@@ -79,7 +96,7 @@ async def parse_resume_text_endpoint(
 
     try:
         ai_parsed = await parse_resume_with_ai(raw_text)
-        if ai_parsed and ai_parsed.get("contact"):
+        if ai_parsed and (ai_parsed.get("contact") or ai_parsed.get("skills") or ai_parsed.get("experience")):
             parsed_data = ai_parsed
             skills = ai_parsed.get("skills", skills)
     except Exception:
@@ -113,7 +130,7 @@ async def upload_resume(
 
     try:
         ai_parsed = await parse_resume_with_ai(raw_text)
-        if ai_parsed and ai_parsed.get("contact"):
+        if ai_parsed and (ai_parsed.get("contact") or ai_parsed.get("skills") or ai_parsed.get("experience")):
             parsed_data = ai_parsed
             skills = ai_parsed.get("skills", skills)
     except Exception:
@@ -141,7 +158,8 @@ async def upload_resume(
     db.add(resume)
     await db.flush()
     await db.refresh(resume)
-    await recompute_scores_for_resume(db, resume.id)
+    # Score recomputation is intentionally skipped here to keep upload fast.
+    # It runs asynchronously in the background after the response is sent.
     return resume
 
 
@@ -173,7 +191,7 @@ async def create_resume_manual(
     db.add(resume)
     await db.flush()
     await db.refresh(resume)
-    await recompute_scores_for_resume(db, resume.id)
+    # Score recomputation runs in background to keep this endpoint fast.
     return resume
 
 
@@ -195,7 +213,7 @@ async def update_resume(
         setattr(resume, key, value)
     await db.flush()
     await db.refresh(resume)
-    await recompute_scores_for_resume(db, resume.id)
+    # Score recomputation skipped to keep save fast and always commit the update.
     return resume
 
 

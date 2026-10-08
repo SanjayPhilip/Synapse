@@ -185,14 +185,12 @@ async def seed():
         seeker = Profile(
             id=uuid.uuid4(),
             email="seeker@synapse.demo",
-            full_name="Alex Rivera",
+            full_name="Demo Seeker",
             role="seeker",
             headline="Full-Stack Engineer & AI Enthusiast",
             bio="Software engineer with 5+ years of experience building modern React, TypeScript, and Python web applications.",
             location="San Francisco, CA",
             phone="+1 (555) 234-5678",
-            linkedin="https://linkedin.com/in/alex-rivera-demo",
-            website="https://alexrivera.dev",
             password_hash=hash_password("Demo1234!"),
         )
         session.add(seeker)
@@ -201,12 +199,12 @@ async def seed():
         # Seeker Resumes
         seeker_resume_1 = Resume(
             user_id=seeker.id,
-            file_name="Alex_Rivera_FullStack_Resume.pdf",
+            file_name="Demo_Seeker_FullStack_Resume.pdf",
             file_type="application/pdf",
             is_current=True,
             version=1,
             skills=["React", "TypeScript", "JavaScript", "Python", "FastAPI", "PostgreSQL", "Docker", "REST APIs", "Git", "Tailwind CSS"],
-            raw_text="Alex Rivera - Full Stack Developer. Experienced with React, TypeScript, Node.js, Python, FastAPI, SQL, PostgreSQL, Docker, AWS, microservices, REST APIs, responsive UI design, CI/CD pipelines.",
+            raw_text="Demo Seeker - Full Stack Developer. Experienced with React, TypeScript, Node.js, Python, FastAPI, SQL, PostgreSQL, Docker, AWS, microservices, REST APIs, responsive UI design, CI/CD pipelines.",
             parsed_data={
                 "summary": "Full Stack Developer with 5+ years experience building web applications.",
                 "skills": ["React", "TypeScript", "JavaScript", "Python", "FastAPI", "PostgreSQL", "Docker", "REST APIs", "Git"],
@@ -300,9 +298,72 @@ async def seed():
             }
         ]
 
+        # Insert each extra demo candidate: Profile + Resume + Application + MatchScore + optional Note
+        for spec in candidate_specs:
+            cand = Profile(
+                id=uuid.uuid4(),
+                email=spec["email"],
+                full_name=spec["full_name"],
+                role="seeker",
+                headline=spec["headline"],
+                password_hash=hash_password("Demo1234!"),
+            )
+            session.add(cand)
+            await session.flush()
+
+            cand_resume = Resume(
+                user_id=cand.id,
+                file_name=f"{spec['full_name'].replace(' ', '_')}_Resume.pdf",
+                file_type="application/pdf",
+                is_current=True,
+                version=1,
+                skills=spec["skills"],
+                raw_text=spec["resume_text"],
+                parsed_data={"skills": spec["skills"], "summary": spec["resume_text"]},
+            )
+            session.add(cand_resume)
+            await session.flush()
+
+            target_job = job_instances[spec["target_job_idx"]]
+            cand_app = Application(
+                seeker_id=cand.id,
+                job_posting_id=target_job.id,
+                resume_id=cand_resume.id,
+                status=spec["status"],
+                match_score=spec["score"],
+                applied_via="platform",
+                interview_link=spec["interview_link"],
+                employer_notes=spec["notes"],
+            )
+            session.add(cand_app)
+            await session.flush()
+
+            cand_match = MatchScore(
+                resume_id=cand_resume.id,
+                job_posting_id=target_job.id,
+                direction="seeker_to_job",
+                overall_score=spec["score"],
+                keyword_score=spec["score"] + 1.0,
+                semantic_score=spec["score"] - 1.0,
+                gap_report={
+                    "matching_skills": spec["skills"],
+                    "missing_skills": [],
+                    "recommendations": []
+                }
+            )
+            session.add(cand_match)
+
+            if spec["notes"]:
+                cand_note = CandidateNote(
+                    application_id=cand_app.id,
+                    author_id=employer.id,
+                    note_text=spec["notes"],
+                )
+                session.add(cand_note)
+
         await session.flush()
 
-        # Seed Applications, Match Scores, and Notifications directly for Primary Seeker (Alex Rivera)
+        # Seed Applications, Match Scores, and Notifications directly for Primary Seeker (Demo Seeker)
         applications_data = [
             {
                 "job": job_instances[0], # Senior React Dev
